@@ -16,6 +16,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Agree on requirements and acceptance criteria before substantial work. Make routine implementation decisions independently.
 - Inspect relevant code before editing and preserve unrelated or uncommitted changes.
 - Prefer readable code, clear naming, small functions, and existing patterns. Avoid unnecessary dependencies and abstractions.
+- Follow the [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) when writing HTML and CSS, while respecting the course requirements.
 - Use SQL for database operations and aggregations. Select columns explicitly, define appropriate constraints, and avoid unnecessary queries.
 
 ## Quality and verification
