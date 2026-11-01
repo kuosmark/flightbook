@@ -1,6 +1,6 @@
 """Flightbook's server-rendered web application."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 import os
 import re
 import secrets
@@ -11,6 +11,7 @@ from flask import Flask, abort, g, redirect, render_template, request, session, 
 
 import db
 import users
+import flights
 
 app = Flask(__name__)
 app.config.update(
@@ -75,7 +76,7 @@ def registration_error(username, password, confirmation):
 @app.route("/")
 def index():
     """Show the public flight diary homepage."""
-    return render_template("index.html")
+    return flight_listing()
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -126,3 +127,114 @@ def logout():
     """Clear the browser's login session."""
     session.clear()
     return redirect(url_for("index"))
+
+
+def flight_listing(user_id=None):
+    """Render either recent public entries or the current user's flight history."""
+    try:
+        page = int(request.args.get("page", "1"))
+    except ValueError:
+        abort(404)
+    if not 1 <= page <= 1000000:
+        abort(404)
+    entries = flights.list_flights(page, user_id)
+    if page > 1 and not entries:
+        abort(404)
+    return render_template("index.html", entries=entries[:flights.PAGE_SIZE], page=page,
+                           has_next=len(entries) > flights.PAGE_SIZE, mine=user_id is not None)
+
+
+def require_login():
+    """Require an account for personal pages and changes."""
+    if g.user is None:
+        abort(401, description="Log in to manage your flights.")
+
+
+def find_flight(flight_id, owner=False):
+    """Look up a flight and optionally require its owner."""
+    entry = flights.get_flight(flight_id)
+    if entry is None:
+        abort(404)
+    if owner:
+        require_login()
+        if entry["user_id"] != g.user["id"]:
+            abort(403)
+    return entry
+
+
+@app.get("/my-flights")
+def my_flights():
+    """Show the signed-in traveller's history."""
+    require_login()
+    return flight_listing(g.user["id"])
+
+
+@app.get("/flights/<int:flight_id>")
+def flight_detail(flight_id):
+    """Show a flight to any visitor."""
+    return render_template("flight.html", flight=find_flight(flight_id))
+
+
+def flight_form(entry=None):
+    """Share creation and editing validation and rendering."""
+    require_login()
+    values = {field: str(entry[field] or "") if entry else "" for field in flights.FIELDS}
+    error = None
+    lookup_field = None
+    results = []
+    if request.method == "POST":
+        values = flights.form_values(request.form)
+        lookup_field, results = airport_lookup(values)
+        if lookup_field is None:
+            error = flights.validation_error(values)
+        if error is None and lookup_field is None:
+            flight_id = flights.save(values, g.user["id"], entry["id"] if entry else None)
+            return redirect(url_for("flight_detail", flight_id=flight_id))
+    return render_template("flight_form.html", values=values, error=error,
+                           editing=entry is not None,
+                           lookup_field=lookup_field,
+                           results=results[:flights.AIRPORT_RESULT_LIMIT],
+                           has_more=len(results) > flights.AIRPORT_RESULT_LIMIT,
+                           result_limit=flights.AIRPORT_RESULT_LIMIT,
+                           cabins=flights.choices("cabin"),
+                           purposes=flights.choices("purpose"), today=date.today().isoformat()), (
+                               400 if error else 200)
+
+
+def airport_lookup(values):
+    """Handle lookup actions without saving or discarding the flight form."""
+    field = request.form.get("airport_search")
+    choice = request.form.get("airport_choice")
+    if choice is not None:
+        field, separator, code = choice.partition(":")
+        if (field not in ("departure_code", "arrival_code")
+                or not separator or not re.fullmatch(r"[A-Z]{3}", code)):
+            abort(400)
+        values[field] = code
+    if field is not None:
+        if field not in ("departure_code", "arrival_code"):
+            abort(400)
+        return field, [] if choice else flights.search_airports(values[field])
+    return None, []
+
+
+@app.route("/flights/new", methods=["GET", "POST"])
+def new_flight():
+    """Create a public diary entry."""
+    return flight_form()
+
+
+@app.route("/flights/<int:flight_id>/edit", methods=["GET", "POST"])
+def edit_flight(flight_id):
+    """Edit an owned flight."""
+    return flight_form(find_flight(flight_id, owner=True))
+
+
+@app.route("/flights/<int:flight_id>/delete", methods=["GET", "POST"])
+def delete_flight(flight_id):
+    """Confirm deletion before accepting the protected POST."""
+    entry = find_flight(flight_id, owner=True)
+    if request.method == "POST":
+        flights.delete(flight_id, g.user["id"])
+        return redirect(url_for("my_flights"))
+    return render_template("delete_flight.html", flight=entry)

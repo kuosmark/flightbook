@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Delete flight · Flightbook{% endblock %}
+{% block content %}
+<section class="flight-editor">
+  <h1>Delete flight?</h1>
+  <p>{{ flight.departure_code }} → {{ flight.arrival_code }} on {{ flight.departure_date }}</p>
+  <p>This cannot be undone.</p>
+  <form method="post" class="form-actions">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <button class="button" type="submit">Delete flight</button>
+    <a href="{{ url_for('flight_detail', flight_id=flight.id) }}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

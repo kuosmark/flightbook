@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ flight.departure_code }} → {{ flight.arrival_code }} · Flightbook{% endblock %}
+{% block content %}
+<section class="flight-section">
+  <p><a href="{{ url_for('index') }}">← All flights</a></p>
+  <h1>{{ flight.departure_code }} → {{ flight.arrival_code }}</h1>
+  <p>{{ flight.departure_name or flight.departure_code }} → {{ flight.arrival_name or flight.arrival_code }}</p>
+  <p>Traveller: {{ flight.username }}</p>
+  <dl class="flight-details">
+    <dt>Departure date</dt><dd><time datetime="{{ flight.departure_date }}">{{ flight.departure_date }}</time></dd>
+    {% for field, label in [('airline', 'Airline'), ('flight_number', 'Flight number'), ('aircraft', 'Aircraft type'), ('seat', 'Seat'), ('cabin_name', 'Cabin class'), ('purpose_name', 'Journey purpose')] %}
+    {% if flight[field] %}<dt>{{ label }}</dt><dd>{{ flight[field] }}</dd>{% endif %}
+    {% endfor %}
+  </dl>
+  {% if g.user and g.user.id == flight.user_id %}
+  <div class="form-actions">
+    <a href="{{ url_for('edit_flight', flight_id=flight.id) }}">Edit flight</a>
+    <a href="{{ url_for('delete_flight', flight_id=flight.id) }}">Delete flight</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
