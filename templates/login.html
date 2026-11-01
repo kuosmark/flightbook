@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Log in · Flightbook{% endblock %}
+
+{% block content %}
+<section class="account" aria-labelledby="login-heading">
+  <h1 id="login-heading">Log in</h1>
+  {% if error %}
+  <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+  <form class="account-form" action="{{ url_for('login') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <div class="form-field">
+      <label for="login-username">Username</label>
+      <input id="login-username" name="username" value="{{ username }}"
+          autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="form-field">
+      <label for="login-password">Password</label>
+      <input id="login-password" name="password" type="password"
+          autocomplete="current-password" required>
+    </div>
+    <button class="button" type="submit">Log in</button>
+  </form>
+  <p>New to Flightbook? <a href="{{ url_for('register') }}">Create an account</a>.</p>
+</section>
+{% endblock %}

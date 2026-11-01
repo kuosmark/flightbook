@@ -16,6 +16,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Agree on requirements and acceptance criteria before substantial work. Make routine implementation decisions independently.
 - Inspect relevant code before editing and preserve unrelated or uncommitted changes.
 - Prefer readable code, clear naming, small functions, and existing patterns. Avoid unnecessary dependencies and abstractions.
+- Follow the [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) when writing HTML and CSS, while respecting the course requirements.
 - Use SQL for database operations and aggregations. Select columns explicitly, define appropriate constraints, and avoid unnecessary queries.
 
 ## Quality and verification
@@ -34,6 +35,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - For every subsequent change, create a short-lived branch and pull request. Never push directly to `main` after bootstrap.
 - Make small, focused commits with descriptive English messages.
 - Keep PR descriptions brief: what changed, why, and how it was verified. Include extra detail only when it affects review or merging.
+- For visible UI changes, attach a representative screenshot to the PR description. Keep screenshots out of the repository.
 - Review and verify each pull request before merging. Obtain explicit owner approval before merging.
 - Require the `Quality checks` CI job to pass for the latest revision before merging.
 - Squash-merge approved pull requests and delete merged branches.
