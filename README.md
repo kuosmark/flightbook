@@ -9,9 +9,9 @@ A social flight diary where passengers can log their flights, rate and review th
 - Edit and delete your own flight entries.
 - Optionally rate flights and write reviews.
 - Classify flights by cabin class and journey purpose using options stored in the database.
-- Browse and search your own and other users' flight entries.
+- Browse and search your own and other users' flight entries by airport, airline, or flight number.
 - Comment on your own and other users' flights.
-- View traveller profiles with flight histories and statistics.
+- View traveller profiles showing their flight history, total flights, and number of airlines and airports visited.
 
 ## Technologies
 
