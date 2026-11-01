@@ -23,6 +23,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Validate input server-side and enforce authentication and authorization.
 - Use parameterized SQL, password hashing, template escaping, and CSRF protection.
 - Test relevant behavior and failure cases. Run applicable checks before committing and report verification limitations.
+- Use Pylint's default checks with the repository's Python 3.12 and 100-character line settings. Fix findings; narrowly scope and explain any necessary suppression.
 - Check UI changes for responsiveness, accessibility, and error states.
 - Measure performance before and after performance-related changes using representative data.
 - Never commit secrets, local application databases, virtual environments, or temporary files.
@@ -32,8 +33,14 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - The owner-approved initial bootstrap commit, `docs: initialize Flightbook project`, may be made directly on `main` before branch protection is enabled.
 - For every subsequent change, create a short-lived branch and pull request. Never push directly to `main` after bootstrap.
 - Make small, focused commits with descriptive English messages.
+- Keep PR descriptions brief: what changed, why, and how it was verified. Include extra detail only when it affects review or merging.
 - Review and verify each pull request before merging. Obtain explicit owner approval before merging.
+- Require the `Quality checks` CI job to pass for the latest revision before merging.
 - Squash-merge approved pull requests and delete merged branches.
 - Keep the README accurate, including setup instructions and application features.
 - Record required Pylint results and performance measurements.
 - Avoid unnecessary infrastructure or deployment workflows.
+
+## Development commands
+
+See [README.md](README.md) for setup, run commands, and automated and manual checks.

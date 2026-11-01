@@ -1,0 +1,139 @@
+:root {
+  color-scheme: light;
+  --paper: #f7f5ef;
+  --ink: #203d36;
+  --muted: #56655e;
+  --line: #c9cfc4;
+  --accent: #a34b29;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+.page-width {
+  width: min(100% - 3rem, 68rem);
+  margin-inline: auto;
+}
+
+a {
+  color: inherit;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+
+.skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.site-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  font-size: 1.6rem;
+  font-weight: 750;
+  letter-spacing: -0.06em;
+  text-decoration: none;
+}
+
+.wordmark span {
+  color: var(--accent);
+}
+
+.site-label {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.introduction {
+  padding-block: clamp(3rem, 7vw, 6rem);
+}
+
+h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3rem, 7vw, 5.75rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.intro-copy {
+  max-width: 34rem;
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+  font-size: 1.125rem;
+}
+
+h2 {
+  margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+}
+
+.route-mark {
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+h3 {
+  margin: 0.75rem 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.75rem;
+  font-weight: 400;
+}
+
+.empty-state p {
+  max-width: 34rem;
+  margin: 0.5rem auto;
+  color: var(--muted);
+}
+
+@media (max-width: 30rem) {
+  .page-width {
+    width: calc(100% - 2rem);
+  }
+
+  .site-label {
+    flex-basis: 100%;
+  }
+
+  .empty-state {
+    padding-inline: 0;
+  }
+}
