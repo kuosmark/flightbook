@@ -49,9 +49,6 @@ No database initialization or secret configuration is needed at this stage.
 - Follow the Flightbook home link and confirm it returns to `/`.
 - Visit a nonexistent URL and confirm the server returns HTTP 404.
 
-With the virtual environment active, check dependency compatibility with
-`python -m pip check` and list routes with `python -m flask --app app routes`.
-
 ## Development checks
 
 With the virtual environment active, install and run the development tools:
@@ -63,20 +60,8 @@ python -m pylint --rcfile=pyproject.toml *.py tests
 python -m unittest discover -s tests -v
 ```
 
-`requirements.txt` lists application dependencies. `requirements-dev.txt` includes
-that file and adds Pylint for development; it is not needed to run the app.
-The smoke test uses Python's built-in `unittest` and Flask's test client to render
-the homepage and load its referenced local stylesheets, without starting a server.
+`requirements-dev.txt` includes the application dependencies and adds Pylint.
+The smoke test checks homepage rendering and its linked stylesheets.
 
-Pylint uses its default checks, targeting Python 3.12 with a 100-character Python
-line limit. Fix findings rather than disabling whole categories; explain any
-necessary, narrowly scoped exception. The course's final Pylint report will be
-prepared from the completed application, including explanations for remaining findings.
-
-`.editorconfig` provides whitespace and indentation defaults for supporting editors.
-It does not install a formatter or replace linting and review.
-
-GitHub Actions runs dependency checks, Pylint, and the smoke test on Python 3.12
-for pull requests and pushes to `main`. The `Quality checks` job must pass on the
-latest revision before merging, alongside owner approval. Continue to perform
-the manual UI checks above; automated checks do not verify visual usability.
+GitHub Actions runs these checks on Python 3.12 for pull requests and pushes to
+`main`. The `Quality checks` job must pass before merging, alongside owner approval.

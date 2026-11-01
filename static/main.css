@@ -47,16 +47,12 @@ a:focus-visible {
   transform: translateY(0);
 }
 
-.site-header,
-.section-heading {
+.site-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem 1.5rem;
-}
-
-.site-header {
   padding-block: 1.5rem;
   border-bottom: 1px solid var(--line);
 }
@@ -97,13 +93,10 @@ h1 {
   font-size: 1.125rem;
 }
 
-.section-heading {
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
-}
-
 h2 {
   margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
   font-size: 1.25rem;
   font-weight: 600;
 }

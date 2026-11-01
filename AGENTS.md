@@ -43,15 +43,4 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 
 ## Development commands
 
-- Create the environment: `python3.12 -m venv .venv`.
-- Activate it on macOS/Linux: `source .venv/bin/activate`.
-- Install dependencies: `python -m pip install -r requirements.txt`.
-- Install development dependencies: `python -m pip install -r requirements-dev.txt` (includes application dependencies and Pylint).
-- Run locally: `python -m flask --app app run --debug`.
-- If port 5000 is occupied, add `--port 5001`.
-- Check dependencies: `python -m pip check`.
-- Lint application and test code: `python -m pylint --rcfile=pyproject.toml *.py tests`.
-- Run the smoke test: `python -m unittest discover -s tests -v`.
-- Inspect routes: `python -m flask --app app routes`.
-- Follow the README's manual verification steps for the homepage.
-- No database initialization is needed for the current foundation.
+See [README.md](README.md) for setup, run commands, and automated and manual checks.
