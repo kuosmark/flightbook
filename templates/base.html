@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A social flight diary for your journeys and the stories along the way.">
+    <meta name="description" content="A social flight diary for logging flights, writing reviews, and browsing other travellers' entries.">
     <title>{% block title %}Flightbook{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
   </head>
@@ -16,8 +16,5 @@
     <main id="main-content" class="page-width" tabindex="-1">
       {% block content %}{% endblock %}
     </main>
-    <footer class="site-footer page-width">
-      <p>Flightbook &mdash; journeys worth remembering.</p>
-    </footer>
   </body>
 </html>
