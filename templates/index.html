@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Explore flights · Flightbook{% endblock %}
+
+{% block content %}
+<section class="introduction" aria-labelledby="intro-heading">
+  <p class="eyebrow">Your journeys, remembered</p>
+  <h1 id="intro-heading">Every flight<br>has a story.</h1>
+  <p class="intro-copy">A place for the flights you take, the moments you remember,
+    and the travellers you meet along the way.</p>
+</section>
+
+<section class="flight-section" aria-labelledby="flights-heading">
+  <div class="section-heading">
+    <h2 id="flights-heading">Explore flights</h2>
+    <span class="section-note">The diary starts here</span>
+  </div>
+  <div class="empty-state">
+    <span class="route-mark" aria-hidden="true">○ ─ ─ ─ ○</span>
+    <h3>No flight stories yet</h3>
+    <p>Flightbook is just getting started. Flight logging and traveller accounts
+      are on the way.</p>
+    <p>Come back for journeys, reviews, and a little inspiration for your next flight.</p>
+  </div>
+</section>
+{% endblock %}

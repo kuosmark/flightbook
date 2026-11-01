@@ -37,3 +37,15 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Keep the README accurate, including setup instructions and application features.
 - Record required Pylint results and performance measurements.
 - Avoid unnecessary infrastructure or deployment workflows.
+
+## Development commands
+
+- Create the environment: `python3.12 -m venv .venv`.
+- Activate it on macOS/Linux: `source .venv/bin/activate`.
+- Install dependencies: `python -m pip install -r requirements.txt`.
+- Run locally: `python -m flask --app app run --debug`.
+- If port 5000 is occupied, add `--port 5001`.
+- Check dependencies: `python -m pip check`.
+- Inspect routes: `python -m flask --app app routes`.
+- Follow the README's manual verification steps for the homepage.
+- No database initialization is needed for the current foundation.

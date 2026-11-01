@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A social flight diary for your journeys and the stories along the way.">
+    <title>{% block title %}Flightbook{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header page-width">
+      <a class="wordmark" href="{{ url_for('index') }}" aria-label="Flightbook home">Flightbook<span aria-hidden="true">.</span></a>
+      <span class="site-label">A social flight diary</span>
+    </header>
+    <main id="main-content" class="page-width" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer page-width">
+      <p>Flightbook &mdash; journeys worth remembering.</p>
+    </footer>
+  </body>
+</html>
