@@ -23,6 +23,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Validate input server-side and enforce authentication and authorization.
 - Use parameterized SQL, password hashing, template escaping, and CSRF protection.
 - Test relevant behavior and failure cases. Run applicable checks before committing and report verification limitations.
+- Use Pylint's default checks with the repository's Python 3.12 and 100-character line settings. Fix findings; narrowly scope and explain any necessary suppression.
 - Check UI changes for responsiveness, accessibility, and error states.
 - Measure performance before and after performance-related changes using representative data.
 - Never commit secrets, local application databases, virtual environments, or temporary files.
@@ -33,6 +34,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - For every subsequent change, create a short-lived branch and pull request. Never push directly to `main` after bootstrap.
 - Make small, focused commits with descriptive English messages.
 - Review and verify each pull request before merging. Obtain explicit owner approval before merging.
+- Require the `Quality checks` CI job to pass for the latest revision before merging.
 - Squash-merge approved pull requests and delete merged branches.
 - Keep the README accurate, including setup instructions and application features.
 - Record required Pylint results and performance measurements.
@@ -43,9 +45,12 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Create the environment: `python3.12 -m venv .venv`.
 - Activate it on macOS/Linux: `source .venv/bin/activate`.
 - Install dependencies: `python -m pip install -r requirements.txt`.
+- Install development dependencies: `python -m pip install -r requirements-dev.txt` (includes application dependencies and Pylint).
 - Run locally: `python -m flask --app app run --debug`.
 - If port 5000 is occupied, add `--port 5001`.
 - Check dependencies: `python -m pip check`.
+- Lint application and test code: `python -m pylint --rcfile=pyproject.toml *.py tests`.
+- Run the smoke test: `python -m unittest discover -s tests -v`.
 - Inspect routes: `python -m flask --app app routes`.
 - Follow the README's manual verification steps for the homepage.
 - No database initialization is needed for the current foundation.

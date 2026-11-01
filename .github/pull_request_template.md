@@ -10,5 +10,6 @@ How was the change tested?
 
 - [ ] Changes are focused and complete.
 - [ ] Relevant checks pass.
+- [ ] CI passes for the latest revision.
 - [ ] Documentation is updated if needed.
 - [ ] Owner explicitly approved merging this revision.
