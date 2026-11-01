@@ -180,17 +180,42 @@ def flight_form(entry=None):
     require_login()
     values = {field: str(entry[field] or "") if entry else "" for field in flights.FIELDS}
     error = None
+    lookup_field = None
+    results = []
     if request.method == "POST":
         values = flights.form_values(request.form)
-        error = flights.validation_error(values)
-        if error is None:
+        lookup_field, results = airport_lookup(values)
+        if lookup_field is None:
+            error = flights.validation_error(values)
+        if error is None and lookup_field is None:
             flight_id = flights.save(values, g.user["id"], entry["id"] if entry else None)
             return redirect(url_for("flight_detail", flight_id=flight_id))
     return render_template("flight_form.html", values=values, error=error,
                            editing=entry is not None,
-                           airports=flights.airports(), cabins=flights.choices("cabin"),
+                           lookup_field=lookup_field,
+                           results=results[:flights.AIRPORT_RESULT_LIMIT],
+                           has_more=len(results) > flights.AIRPORT_RESULT_LIMIT,
+                           result_limit=flights.AIRPORT_RESULT_LIMIT,
+                           cabins=flights.choices("cabin"),
                            purposes=flights.choices("purpose"), today=date.today().isoformat()), (
                                400 if error else 200)
+
+
+def airport_lookup(values):
+    """Handle lookup actions without saving or discarding the flight form."""
+    field = request.form.get("airport_search")
+    choice = request.form.get("airport_choice")
+    if choice is not None:
+        field, separator, code = choice.partition(":")
+        if (field not in ("departure_code", "arrival_code")
+                or not separator or not re.fullmatch(r"[A-Z]{3}", code)):
+            abort(400)
+        values[field] = code
+    if field is not None:
+        if field not in ("departure_code", "arrival_code"):
+            abort(400)
+        return field, [] if choice else flights.search_airports(values[field])
+    return None, []
 
 
 @app.route("/flights/new", methods=["GET", "POST"])

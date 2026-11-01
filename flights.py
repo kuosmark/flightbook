@@ -6,6 +6,7 @@ import re
 import db
 
 PAGE_SIZE = 20
+AIRPORT_RESULT_LIMIT = 20
 FIELDS = ("departure_date", "departure_code", "arrival_code", "airline", "flight_number",
           "aircraft", "seat", "cabin_id", "purpose_id")
 
@@ -15,10 +16,14 @@ def choices(kind):
     return db.query("SELECT id, name FROM categories WHERE kind = ? ORDER BY id", [kind])
 
 
-def airports():
-    """Return airport suggestions in code order."""
-    return db.query("""SELECT iata_code, name, municipality, iso_country
-        FROM airports ORDER BY iata_code""")
+def search_airports(query):
+    """Find code prefixes; a complete code can match only one airport."""
+    query = query.strip().upper()
+    if not re.fullmatch(r"[A-Z]{1,3}", query):
+        return []
+    return db.query("""SELECT iata_code, name, municipality, iso_country FROM airports
+        WHERE iata_code LIKE ? ORDER BY iata_code LIMIT ?""",
+                    [query + "%", AIRPORT_RESULT_LIMIT + 1])
 
 
 def form_values(form):

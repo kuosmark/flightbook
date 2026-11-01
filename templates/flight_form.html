@@ -6,6 +6,8 @@
   <p>Flight entries are public. Only you can edit or delete yours.</p>
   {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
   <form method="post" class="account-form">
+    {# Enter submits the flight; lookup buttons are explicit secondary actions. #}
+    <button type="submit" hidden>Save flight</button>
     <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
     <div class="form-field">
       <label for="departure-date">Departure date</label>
@@ -15,16 +17,22 @@
       {% for field, label in [('departure_code', 'Departure airport'), ('arrival_code', 'Arrival airport')] %}
       <div class="form-field">
         <label for="{{ field }}">{{ label }}</label>
-        <p class="field-hint" id="{{ field }}-hint">Three-letter code, e.g. HEL. Names appear in suggestions.</p>
-        <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" list="airport-options" pattern="[A-Za-z]{3}" required aria-describedby="{{ field }}-hint" autocomplete="off" spellcheck="false">
+        <p class="field-hint" id="{{ field }}-hint">Enter a three-letter code, e.g. AMS. Search with one or more letters.</p>
+        <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" pattern="[A-Za-z]{3}" maxlength="3" required aria-describedby="{{ field }}-hint" autocomplete="off" spellcheck="false">
+        <button class="airport-search" type="submit" name="airport_search" value="{{ field }}" formnovalidate>Search airports</button>
+        {% if lookup_field == field and request.form.get('airport_search') %}
+        {% if results %}
+        <ul class="airport-results">
+          {% for airport in results %}
+          <li><button type="submit" name="airport_choice" value="{{ field }}:{{ airport.iata_code }}" formnovalidate>{{ airport.iata_code }} — {{ airport.name }} ({{ airport.iso_country }})</button></li>
+          {% endfor %}
+        </ul>
+        {% if has_more %}<p class="field-hint">Showing the first {{ result_limit }} matches. Refine your search for more specific results.</p>{% endif %}
+        {% else %}<p role="status">No matches. Enter one to three letters of an airport code. You can still save an unlisted three-letter code.</p>{% endif %}
+        {% endif %}
       </div>
       {% endfor %}
     </div>
-    <datalist id="airport-options">
-      {% for airport in airports %}
-      <option value="{{ airport.iata_code }}" label="{{ airport.name }} · {{ airport.iso_country }}"></option>
-      {% endfor %}
-    </datalist>
     <h2>Optional details</h2>
     <div class="form-grid">
       {% for field, label, hint in [('airline', 'Airline', 'Airline name, e.g. Finnair'), ('flight_number', 'Flight number', 'E.g. AY123, without spaces'), ('aircraft', 'Aircraft type', 'E.g. Airbus A350-900'), ('seat', 'Seat number', 'E.g. 12A')] %}

@@ -131,7 +131,8 @@ class FlightsTest(unittest.TestCase):
             self.assertEqual(len(flights.choices("purpose")), 3)
         self.assertEqual(self.client.get(path).status_code, 200)
         page = self.client.get("/flights/new").get_data(as_text=True)
-        self.assertIn('value="HEL" label="Helsinki Vantaa Airport', page)
+        self.assertIn("Search airports", page)
+        self.assertNotIn("<datalist", page)
 
     def test_pagination_and_personal_order(self):
         """Public feed orders additions; personal history orders flight dates."""
@@ -152,6 +153,39 @@ class FlightsTest(unittest.TestCase):
         self.assertIn("Older flight", self.client.get("/my-flights?page=2").get_data(as_text=True))
         for page in ("0", "-1", "abc", "100000000000000000", "3"):
             self.assertEqual(self.client.get("/?page=" + page).status_code, 404)
+
+    def test_airport_lookup_preserves_form_without_saving(self):
+        """Searching and selecting bypass flight validation and preserve unsaved fields."""
+        values = self.values | {"departure_date": "", "departure_code": "he",
+                                "airline": "Unsaved airline", "arrival_code": "AMS"}
+        response = self.post("/flights/new", values | {"airport_search": "departure_code"})
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn("Helsinki Vantaa Airport", page)
+        self.assertIn('value="Unsaved airline"', page)
+        selected = self.post("/flights/new", values | {"airport_choice": "departure_code:HEL"})
+        self.assertEqual(selected.status_code, 200)
+        self.assertIn('value="HEL"', selected.get_data(as_text=True))
+        self.assertIn('value="AMS"', selected.get_data(as_text=True))
+        with app.app_context():
+            self.assertEqual(db.query("SELECT COUNT(*) AS count FROM flights")[0]["count"], 0)
+        path = self.create()
+        response = self.post(path + "/edit", values | {"airport_search": "arrival_code"})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Unsaved airline", self.client.get(path).get_data(as_text=True))
+        self.assertEqual(self.post(path + "/edit", {"airport_search": "invalid"}).status_code, 400)
+
+    def test_airport_search_matches_only_code_prefixes(self):
+        """Full codes return one result; names and malformed queries never match."""
+        with app.app_context():
+            self.assertEqual([row["iata_code"] for row in flights.search_airports(" ams ")],
+                             ["AMS"])
+            matches = flights.search_airports("he")
+            self.assertTrue(matches)
+            self.assertTrue(all(row["iata_code"].startswith("HE") for row in matches))
+            for query in ("Helsinki", "%_", "", "123", "A1", "Ä", "AMSS"):
+                self.assertEqual(flights.search_airports(query), [])
+            self.assertLessEqual(len(flights.search_airports("a")), 21)
 
     def test_missing_flight_returns_not_found(self):
         """Missing entries have consistent status on view, edit, and delete."""

@@ -31,8 +31,8 @@ Flights require a departure date (today or earlier) and three-letter departure
 and arrival airport codes. Airline name, flight number, aircraft type, seat,
 cabin class, and journey purpose are optional. Codes are normalized to uppercase;
 flight numbers cannot contain internal spaces. Airport names come from a local
-snapshot. Unknown three-letter airport codes can still be saved. Browser-native
-airport suggestions are available where supported; names also appear on saved
+snapshot. Unknown three-letter airport codes can still be saved. Airport lookup accepts one to three letters of an airport code. Press Search airports, then
+select a result; partial codes return prefix matches; a full code returns only that airport. Searching preserves unsaved flight details. Names also appear on saved
 entries. No external service is contacted during normal use.
 
 Ratings, reviews, search, comments, and profiles are not implemented yet.
@@ -91,8 +91,10 @@ Replacing the key signs out existing sessions. For HTTPS hosting, also set
 ## Manual verification
 
 - Add a past flight from `HEL` to `AMS` and confirm both airport names appear.
-- Try airport suggestions with a partial code; browser support and presentation vary.
+- Search airports by partial code, select a result, and check that other
+  form fields are preserved.
 - Try a future date, malformed airport code, and flight number containing spaces.
+- Press Enter in a completed flight form and confirm it saves instead of searching airports.
 - Edit the flight, then open the delete confirmation and cancel before testing deletion.
 - Log out and confirm flights remain public but edit/delete controls disappear.
 - Sign in as another user and confirm they cannot edit or delete the first user's flight.
