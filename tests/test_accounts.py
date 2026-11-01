@@ -40,7 +40,7 @@ class AccountsTest(unittest.TestCase):
     def post_form(self, path, data=None):
         """Send a form with the token issued to this browser."""
         response = self.client.get("/" if path == "/logout" else path)
-        token = csrf_token(response)
+        token = csrf_token(response, action=path)
         return self.client.post(path, data={"csrf_token": token, **(data or {})})
 
     def register(self, username="Markus", password=None, confirmation=None):
