@@ -1,10 +1,13 @@
 """Smoke coverage for the homepage's template and stylesheet integration."""
 
 from html.parser import HTMLParser
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
 from app import app
+import db
 
 
 class StylesheetParser(HTMLParser):
@@ -26,9 +29,13 @@ class HomepageTest(unittest.TestCase):
     def test_homepage_and_stylesheets(self):
         """Render the real templates and load their referenced local stylesheets."""
         with (
-            patch.dict(app.config, TESTING=True, SECRET_KEY="test-only"),
+            TemporaryDirectory() as directory,
+            patch.dict(app.config, TESTING=True, SECRET_KEY="test-only",
+                       DATABASE=str(Path(directory) / "test.db")),
             app.test_client() as client,
         ):
+            with app.app_context():
+                db.init_db()
             response = client.get("/")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.mimetype, "text/html")

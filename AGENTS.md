@@ -33,6 +33,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 
 - The owner-approved initial bootstrap commit, `docs: initialize Flightbook project`, may be made directly on `main` before branch protection is enabled.
 - For every subsequent change, create a short-lived branch and pull request. Never push directly to `main` after bootstrap.
+- Obtain explicit owner approval before opening a pull request.
 - Make small, focused commits with descriptive English messages.
 - Keep PR descriptions brief: what changed, why, and how it was verified. Include extra detail only when it affects review or merging.
 - For visible UI changes, attach a representative screenshot to the PR description. Keep screenshots out of the repository.

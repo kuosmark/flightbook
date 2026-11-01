@@ -1,19 +1,28 @@
 {% extends "base.html" %}
-
-{% block title %}Explore flights · Flightbook{% endblock %}
-
+{% block title %}{{ 'My flights' if mine else 'Recent flights' }} · Flightbook{% endblock %}
 {% block content %}
-<section class="introduction" aria-labelledby="intro-heading">
-  <h1 id="intro-heading">Your flight diary</h1>
-  <p class="intro-copy">Keep a record of your flights and share your experiences.</p>
-</section>
-
-<section aria-labelledby="flights-heading">
-  <h2 id="flights-heading">Explore flights</h2>
-  <div class="empty-state">
-    <span class="route-mark" aria-hidden="true">○ ─ ─ ─ ○</span>
-    <h3>No flights yet</h3>
-    <p>Flight logging isn't available yet.</p>
+<section class="flight-section">
+  <div class="section-heading">
+    <h1>{{ 'My flights' if mine else 'Recent flights' }}</h1>
+    {% if g.user %}<a class="button" href="{{ url_for('new_flight') }}">Add flight</a>{% endif %}
   </div>
+  {% if entries %}
+  <ul class="flight-list">
+    {% for flight in entries %}
+    <li>
+      <a class="flight-route" href="{{ url_for('flight_detail', flight_id=flight.id) }}">{{ flight.departure_code }} → {{ flight.arrival_code }}</a>
+      <p>{{ flight.departure_name or flight.departure_code }} → {{ flight.arrival_name or flight.arrival_code }}</p>
+      <p class="field-hint"><time datetime="{{ flight.departure_date }}">{{ flight.departure_date }}</time> · {{ flight.username }}{% if flight.airline %} · {{ flight.airline }}{% endif %}</p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state"><h2>No flights yet</h2><p>{{ 'Add your first flight.' if g.user else 'Log in to add a flight.' }}</p></div>
+  {% endif %}
+  <nav class="pagination" aria-label="Flight pages">
+    {% if page > 1 %}<a href="{{ url_for('my_flights' if mine else 'index', page=page-1) }}">Previous</a>{% endif %}
+    {% if entries %}<span>Page {{ page }}</span>{% endif %}
+    {% if has_next %}<a href="{{ url_for('my_flights' if mine else 'index', page=page+1) }}">Next</a>{% endif %}
+  </nav>
 </section>
 {% endblock %}

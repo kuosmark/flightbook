@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit flight' if editing else 'Add flight' }} · Flightbook{% endblock %}
+{% block content %}
+<section class="flight-editor">
+  <h1>{{ 'Edit flight' if editing else 'Add flight' }}</h1>
+  <p>Flight entries are public. Only you can edit or delete yours.</p>
+  {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <div class="form-field">
+      <label for="departure-date">Departure date</label>
+      <input id="departure-date" name="departure_date" type="date" value="{{ values.departure_date }}" max="{{ today }}" required>
+    </div>
+    <div class="form-grid">
+      {% for field, label in [('departure_code', 'Departure airport'), ('arrival_code', 'Arrival airport')] %}
+      <div class="form-field">
+        <label for="{{ field }}">{{ label }}</label>
+        <p class="field-hint" id="{{ field }}-hint">Three-letter code, e.g. HEL. Names appear in suggestions.</p>
+        <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" list="airport-options" pattern="[A-Za-z]{3}" required aria-describedby="{{ field }}-hint" autocomplete="off" spellcheck="false">
+      </div>
+      {% endfor %}
+    </div>
+    <datalist id="airport-options">
+      {% for airport in airports %}
+      <option value="{{ airport.iata_code }}" label="{{ airport.name }} · {{ airport.iso_country }}"></option>
+      {% endfor %}
+    </datalist>
+    <h2>Optional details</h2>
+    <div class="form-grid">
+      {% for field, label, hint in [('airline', 'Airline', 'Airline name, e.g. Finnair'), ('flight_number', 'Flight number', 'E.g. AY123, without spaces'), ('aircraft', 'Aircraft type', 'E.g. Airbus A350-900'), ('seat', 'Seat number', 'E.g. 12A')] %}
+      <div class="form-field">
+        <label for="{{ field }}">{{ label }}</label>
+        <p class="field-hint" id="{{ field }}-hint">{{ hint }}</p>
+        <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" aria-describedby="{{ field }}-hint"{% if field == 'flight_number' %} pattern="\s*(?:[A-Za-z][A-Za-z0-9]|[0-9][A-Za-z])[0-9]{1,4}[A-Za-z]?\s*"{% elif field == 'seat' %} pattern="[1-9][0-9]{0,2}[A-Za-z]"{% endif %}>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-field">
+      <label for="cabin">Cabin class</label>
+      <select id="cabin" name="cabin_id">
+        <option value="">Not specified</option>
+        {% for cabin in cabins %}<option value="{{ cabin.id }}"{% if values.cabin_id == cabin.id|string %} selected{% endif %}>{{ cabin.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <fieldset class="purpose-options">
+      <legend>Journey purpose</legend>
+      <label><input type="radio" name="purpose_id" value=""{% if not values.purpose_id %} checked{% endif %}> Not specified</label>
+      {% for purpose in purposes %}
+      <label><input type="radio" name="purpose_id" value="{{ purpose.id }}"{% if values.purpose_id == purpose.id|string %} checked{% endif %}> {{ purpose.name }}</label>
+      {% endfor %}
+    </fieldset>
+    <div class="form-actions">
+      <button class="button" type="submit">Save flight</button>
+      <a href="{{ url_for('my_flights') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

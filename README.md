@@ -21,10 +21,23 @@ Python, Flask, SQLite, SQL, HTML, Jinja, and CSS.
 
 Registration, login, and logout are available. Usernames preserve capitalization
 but are unique and matched without regard to case. Accounts stay signed in until
-logout or seven days of inactivity. Flight logging, search, comments, and profiles
-are not implemented yet.
+logout or seven days of inactivity.
 
-Airport reference data for planned flight logging is included in
+Signed-in users can add, edit, and delete their own public flight entries. Everyone
+can browse recent entries and flight details. My flights shows personal history
+by departure date; both lists show 20 entries per page.
+
+Flights require a departure date (today or earlier) and three-letter departure
+and arrival airport codes. Airline name, flight number, aircraft type, seat,
+cabin class, and journey purpose are optional. Codes are normalized to uppercase;
+flight numbers cannot contain internal spaces. Airport names come from a local
+snapshot. Unknown three-letter airport codes can still be saved. Browser-native
+airport suggestions are available where supported; names also appear on saved
+entries. No external service is contacted during normal use.
+
+Ratings, reviews, search, comments, and profiles are not implemented yet.
+
+Airport reference data is included in
 [`data/airports.csv`](data/airports.csv). See [data sources and terms](data/README.md).
 
 ## Run locally
@@ -65,7 +78,10 @@ $env:FLIGHTBOOK_SECRET_KEY = (Get-Content .env) -replace '^FLIGHTBOOK_SECRET_KEY
 If port 5000 is occupied, append `--port 5001` to the run command and open
 http://127.0.0.1:5001 instead. The development server is for local use only.
 The database is stored in `flightbook.db`. Initialization preserves existing
-accounts. Both the database and `.env` are excluded from Git.
+accounts and flight entries and imports the bundled airport snapshot and category
+choices. After updating an existing checkout, run `python -m flask --app app init-db`
+once before using the new flight pages. Both the database and `.env` are excluded
+from Git.
 
 Reuse the same key each time you start the app; load it again in each new terminal.
 Requests fail with a configuration error if `FLIGHTBOOK_SECRET_KEY` is missing.
@@ -73,6 +89,13 @@ Replacing the key signs out existing sessions. For HTTPS hosting, also set
 `FLIGHTBOOK_COOKIE_SECURE=1` so browsers only send the session cookie over HTTPS.
 
 ## Manual verification
+
+- Add a past flight from `HEL` to `AMS` and confirm both airport names appear.
+- Try airport suggestions with a partial code; browser support and presentation vary.
+- Try a future date, malformed airport code, and flight number containing spaces.
+- Edit the flight, then open the delete confirmation and cancel before testing deletion.
+- Log out and confirm flights remain public but edit/delete controls disappear.
+- Sign in as another user and confirm they cannot edit or delete the first user's flight.
 
 - Create an account and confirm you are signed in with your chosen username spelling.
 - Log out, then log in using a different capitalization of the same username.
@@ -97,7 +120,7 @@ python -m unittest discover -s tests -v
 `requirements-dev.txt` includes the application dependencies and adds Pylint.
 Tests use temporary databases and a test-only signing key. They cover homepage
 rendering, account flows, validation, password storage, CSRF protection, and session
-renewal and expiry.
+renewal and expiry, flight ownership and validation, airport import, and pagination.
 
 GitHub Actions runs these checks on Python 3.12 for pull requests and pushes to
 `main`. The `Quality checks` job must pass before merging, alongside owner approval.

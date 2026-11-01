@@ -1,5 +1,6 @@
 """SQLite connections and schema initialization."""
 
+import csv
 import sqlite3
 
 from flask import current_app, g
@@ -22,9 +23,19 @@ def close_connection(_error=None):
 
 
 def init_db():
-    """Create missing tables without deleting existing accounts."""
+    """Create missing tables and load the airport snapshot without deleting user data."""
     with current_app.open_resource("schema.sql") as schema:
         get_connection().executescript(schema.read().decode("utf-8"))
+
+    with open(current_app.root_path + "/data/airports.csv", encoding="utf-8", newline="") as source:
+        rows = csv.DictReader(source)
+        with get_connection() as connection:
+            connection.executemany(
+                """INSERT INTO airports (id, iata_code, name, municipality, iso_country)
+                   VALUES (:id, :iata_code, :name, :municipality, :iso_country)
+                   ON CONFLICT(id) DO UPDATE SET iata_code = excluded.iata_code,
+                   name = excluded.name, municipality = excluded.municipality,
+                   iso_country = excluded.iso_country""", rows)
 
 
 def query(sql, parameters=()):

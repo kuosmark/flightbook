@@ -29,4 +29,5 @@ To refresh it, download the source CSV, apply the same filtering and column
 selection, and save as UTF-8 CSV with LF line endings. Check source IDs and IATA
 codes for duplicates, and update the retrieval date and record count here.
 
-The data is not yet imported into the application database.
+The `flask --app app init-db` command imports this snapshot into SQLite.
+Initialization preserves existing user accounts and flight entries.
