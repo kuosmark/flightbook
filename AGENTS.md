@@ -37,6 +37,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Keep PR descriptions brief: what changed, why, and how it was verified. Include extra detail only when it affects review or merging.
 - For visible UI changes, attach a representative screenshot to the PR description. Keep screenshots out of the repository.
 - Review and verify each pull request before merging. Obtain explicit owner approval before merging.
+- Before requesting merge approval, review the changes against the [course technical checklist](https://hy-tikawe.github.io/materiaali/lista/).
 - Require the `Quality checks` CI job to pass for the latest revision before merging.
 - Squash-merge approved pull requests and delete merged branches.
 - Keep the README accurate, including setup instructions and application features.
