@@ -1,6 +1,6 @@
 # Airport reference data
 
-`airports.csv` is a reduced snapshot of [OurAirports](https://ourairports.com/data/),
+[`airports.csv`](airports.csv) is a reduced snapshot of [OurAirports](https://ourairports.com/data/),
 retrieved on 2026-11-01 from its [CSV download](https://davidmegginson.github.io/ourairports-data/airports.csv).
 
 ## Terms of use
@@ -29,5 +29,7 @@ To refresh it, download the source CSV, apply the same filtering and column
 selection, and save as UTF-8 CSV with LF line endings. Check source IDs and IATA
 codes for duplicates, and update the retrieval date and record count here.
 
-The `flask --app app init-db` command imports this snapshot into SQLite.
-Initialization preserves existing user accounts and flight entries.
+The `python -m flask --app app init-db` command imports this snapshot into SQLite.
+It inserts new records and updates existing records by source ID; it does not
+remove airports that are absent from a later snapshot. Initialization preserves
+existing user accounts and flight entries.
