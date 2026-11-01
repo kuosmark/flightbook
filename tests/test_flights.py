@@ -6,6 +6,8 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
+from html_helpers import Page, csrf_token
+
 from app import app
 import db
 import flights
@@ -42,9 +44,15 @@ class FlightsTest(unittest.TestCase):
         """Submit a CSRF-protected form."""
         return self.client.post(path, data={"csrf_token": "test-token", **(values or {})})
 
+    def submit_rendered_form(self, path, values=None):
+        """Submit the token actually rendered in an accessible flight form."""
+        response = self.client.get(path)
+        token = csrf_token(response)
+        return self.client.post(path, data={"csrf_token": token, **(values or {})})
+
     def create(self, **changes):
         """Create an entry and return its detail URL."""
-        response = self.post("/flights/new", self.values | changes)
+        response = self.submit_rendered_form("/flights/new", self.values | changes)
         self.assertEqual(response.status_code, 302)
         return response.location
 
@@ -55,18 +63,24 @@ class FlightsTest(unittest.TestCase):
                            cabin_id="3", purpose_id="7", user_id=str(self.other))
         page = self.client.get(path).get_data(as_text=True)
         for text in ("Helsinki Vantaa Airport", "Amsterdam Airport Schiphol", "AY123", "12A",
-                     "Finnair", "Business", "Other", "Traveller"):
+                     "Finnair", "Business", "Other", "Traveller", "Airbus A350", "2025-01-15"):
             self.assertIn(text, page)
+        edit_values = Page(self.client.get(path + "/edit")).values
+        expected = self.values | {"airline": "Finnair", "flight_number": "AY123",
+                                  "aircraft": "Airbus A350", "seat": "12A",
+                                  "cabin_id": "3", "purpose_id": "7"}
+        self.assertEqual({field: edit_values.get(field) for field in flights.FIELDS}, expected)
         guest = app.test_client()
         self.assertEqual(guest.get(path).status_code, 200)
         self.assertIn(path, guest.get("/").get_data(as_text=True))
         self.assertNotIn("Edit flight", guest.get(path).get_data(as_text=True))
-        response = self.post(path + "/edit", self.values | {"airline": "Updated airline"})
+        response = self.submit_rendered_form(
+            path + "/edit", self.values | {"airline": "Updated airline"})
         self.assertEqual(response.status_code, 302)
         self.assertIn("Updated airline", self.client.get(path).get_data(as_text=True))
         self.assertEqual(self.client.get(path + "/delete").status_code, 200)
         self.assertEqual(self.client.get(path).status_code, 200)
-        self.assertEqual(self.post(path + "/delete").status_code, 302)
+        self.assertEqual(self.submit_rendered_form(path + "/delete").status_code, 302)
         self.assertEqual(self.client.get(path).status_code, 404)
 
     def test_other_users_and_guests_cannot_modify_entries(self):
@@ -90,7 +104,7 @@ class FlightsTest(unittest.TestCase):
                 self.assertEqual(response.status_code, 403)
         self.assertEqual(self.client.get(path).status_code, 200)
 
-    def test_invalid_fields_preserve_form_and_do_not_write(self):
+    def test_invalid_fields_do_not_create_flights(self):
         """Validate real dates, strict codes, lengths, and category types."""
         cases = [
             ("departure_date", "2025-02-30"), ("departure_date", "20250115"),
@@ -109,6 +123,27 @@ class FlightsTest(unittest.TestCase):
                 self.assertIn('role="alert"', response.get_data(as_text=True))
         with app.app_context():
             self.assertEqual(db.query("SELECT COUNT(*) AS count FROM flights")[0]["count"], 0)
+
+    def test_invalid_create_and_edit_preserve_values(self):
+        """Errors retain entered text and choices without inserting or updating a flight."""
+        path = self.create(airline="Original airline")
+        with app.app_context():
+            original = dict(flights.get_flight(int(path.rsplit("/", 1)[1])))
+        values = self.values | {"departure_date": "2024-03-12", "departure_code": "LHR",
+                                "airline": "Unsaved & airline", "aircraft": "Airbus A321",
+                                "flight_number": "AY 123", "seat": "14C",
+                                "cabin_id": "3", "purpose_id": "7"}
+        for target in ("/flights/new", path + "/edit"):
+            with self.subTest(target=target):
+                response = self.submit_rendered_form(target, values)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('role="alert"', response.get_data(as_text=True))
+                rendered = Page(response).values
+                self.assertEqual({field: rendered.get(field) for field in flights.FIELDS}, values)
+                with app.app_context():
+                    self.assertEqual(dict(flights.get_flight(original["id"])), original)
+                    count = db.query("SELECT COUNT(*) AS count FROM flights")[0]["count"]
+                    self.assertEqual(count, 1)
 
     def test_unknown_codes_and_escaped_text(self):
         """Unknown valid codes survive lookup joins and user text is escaped."""
@@ -137,20 +172,32 @@ class FlightsTest(unittest.TestCase):
     def test_pagination_and_personal_order(self):
         """Public feed orders additions; personal history orders flight dates."""
         with app.app_context():
-            for number in range(21):
-                flights.save(self.values | {"airline": f"Carrier-{number:02d}"}, self.owner)
-            flights.save(self.values | {"departure_date": "2020-01-01", "airline": "Older flight"},
-                         self.owner)
-            flights.save(self.values | {"airline": "Other person's flight"}, self.other)
-        public = self.client.get("/").get_data(as_text=True)
-        self.assertIn("Other person", public)
-        self.assertNotIn("Carrier-00", public)
-        second = self.client.get("/?page=2").get_data(as_text=True)
-        self.assertIn("Carrier-00", second)
-        personal = self.client.get("/my-flights").get_data(as_text=True)
-        self.assertNotIn("Other person", personal)
-        self.assertNotIn("Older flight", personal)
-        self.assertIn("Older flight", self.client.get("/my-flights?page=2").get_data(as_text=True))
+            ids = [flights.save(self.values | {"airline": f"Carrier-{number:02d}"}, self.owner)
+                   for number in range(21)]
+            older = flights.save(self.values | {"departure_date": "2020-01-01"}, self.owner)
+            other = flights.save(self.values, self.other)
+        histories = {
+            "/": [other, older, *reversed(ids)],
+            "/my-flights": [*reversed(ids), older],
+        }
+        for route, expected in histories.items():
+            seen = []
+            for page_number, expected_ids in ((1, expected[:20]), (2, expected[20:])):
+                with self.subTest(route=route, page=page_number):
+                    response = self.client.get(f"{route}?page={page_number}")
+                    self.assertEqual(response.status_code, 200)
+                    links = Page(response).links
+                    entries = [link for link in links if link.startswith("/flights/")
+                               and link.rsplit("/", 1)[1].isdigit()]
+                    self.assertEqual(entries, [f"/flights/{entry}" for entry in expected_ids])
+                    seen.extend(entries)
+                    if page_number == 1:
+                        self.assertIn(f"{route}?page=2", links)
+                        self.assertNotIn(f"{route}?page=1", links)
+                    else:
+                        self.assertIn(f"{route}?page=1", links)
+                        self.assertNotIn(f"{route}?page=3", links)
+            self.assertEqual(seen, [f"/flights/{entry}" for entry in expected])
         for page in ("0", "-1", "abc", "100000000000000000", "3"):
             self.assertEqual(self.client.get("/?page=" + page).status_code, 404)
 

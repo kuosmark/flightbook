@@ -10,6 +10,8 @@ from unittest.mock import patch
 
 from werkzeug.security import check_password_hash
 
+from html_helpers import Page, csrf_token
+
 from app import app
 import db
 import users
@@ -37,9 +39,8 @@ class AccountsTest(unittest.TestCase):
 
     def post_form(self, path, data=None):
         """Send a form with the token issued to this browser."""
-        self.client.get("/login")
-        with self.client.session_transaction() as browser_session:
-            token = browser_session["csrf_token"]
+        response = self.client.get("/" if path == "/logout" else path)
+        token = csrf_token(response, action=path)
         return self.client.post(path, data={"csrf_token": token, **(data or {})})
 
     def register(self, username="Markus", password=None, confirmation=None):
@@ -117,7 +118,7 @@ class AccountsTest(unittest.TestCase):
                 response = self.register(username, password, confirmation)
                 self.assertEqual(response.status_code, 400)
                 self.assertNotIn("<script>", response.get_data(as_text=True))
-                self.assertNotIn(f'value="{self.password}"', response.get_data(as_text=True))
+                self.assertEqual(Page(response).passwords, {"password": "", "confirmation": ""})
         with app.app_context():
             self.assertEqual(db.query("SELECT COUNT(*) AS count FROM users")[0]["count"], 0)
         response = self.post_form("/register")
@@ -155,6 +156,7 @@ class AccountsTest(unittest.TestCase):
                 response = self.post_form("/login", {"username": username, "password": password})
                 self.assertEqual(response.status_code, 400)
                 self.assertIn("Incorrect username or password.", response.get_data(as_text=True))
+                self.assertEqual(Page(response).passwords, {"password": ""})
                 with self.client.session_transaction() as browser_session:
                     self.assertNotIn("user_id", browser_session)
         response = self.post_form("/login", {"username": "Markus", "password": "wrong"})
@@ -173,8 +175,8 @@ class AccountsTest(unittest.TestCase):
         with self.client.session_transaction() as browser_session:
             self.assertIn("user_id", browser_session)
 
-    def test_login_replaces_old_session_and_token(self):
-        """Successful authentication rotates CSRF and discards anonymous session data."""
+    def test_registration_replaces_old_session_and_token(self):
+        """Registration rotates CSRF and discards anonymous session data."""
         self.client.get("/login")
         with self.client.session_transaction() as browser_session:
             old_token = browser_session["csrf_token"]
