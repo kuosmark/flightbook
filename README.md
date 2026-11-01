@@ -24,6 +24,9 @@ but are unique and matched without regard to case. Accounts stay signed in until
 logout or seven days of inactivity. Flight logging, search, comments, and profiles
 are not implemented yet.
 
+Airport reference data for planned flight logging is included in
+[`data/airports.csv`](data/airports.csv). See [data sources and terms](data/README.md).
+
 ## Run locally
 
 Install Python 3.12, then run these commands from the project directory:
