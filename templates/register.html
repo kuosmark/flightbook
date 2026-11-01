@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Create account · Flightbook{% endblock %}
+
+{% block content %}
+<section class="account" aria-labelledby="register-heading">
+  <h1 id="register-heading">Create account</h1>
+  {% if error %}
+  <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+  <form class="account-form" action="{{ url_for('register') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <div class="form-field">
+      <label for="register-username">Username</label>
+      <p class="field-hint" id="username-hint">3–30 letters (A–Z), numbers, or underscores. Usernames are not case-sensitive.</p>
+      <input id="register-username" name="username" value="{{ username }}"
+          autocomplete="username" autocapitalize="none" spellcheck="false"
+          pattern="\s*[A-Za-z0-9_]{3,30}\s*"
+          aria-describedby="username-hint" required>
+    </div>
+    <div class="form-field">
+      <label for="register-password">Password</label>
+      <p class="field-hint" id="password-hint">15–128 characters. Spaces are allowed.</p>
+      <input id="register-password" name="password" type="password"
+          autocomplete="new-password" minlength="15" maxlength="128"
+          aria-describedby="password-hint" required>
+    </div>
+    <div class="form-field">
+      <label for="register-confirmation">Confirm password</label>
+      <input id="register-confirmation" name="confirmation" type="password"
+          autocomplete="new-password" minlength="15" maxlength="128" required>
+    </div>
+    <button class="button" type="submit">Create account</button>
+  </form>
+  <p>Already have an account? <a href="{{ url_for('login') }}">Log in</a>.</p>
+</section>
+{% endblock %}

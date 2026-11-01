@@ -25,7 +25,10 @@ class HomepageTest(unittest.TestCase):
 
     def test_homepage_and_stylesheets(self):
         """Render the real templates and load their referenced local stylesheets."""
-        with patch.dict(app.config, TESTING=True), app.test_client() as client:
+        with (
+            patch.dict(app.config, TESTING=True, SECRET_KEY="test-only"),
+            app.test_client() as client,
+        ):
             response = client.get("/")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.mimetype, "text/html")

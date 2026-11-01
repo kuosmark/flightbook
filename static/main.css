@@ -28,7 +28,9 @@ a {
   color: inherit;
 }
 
-a:focus-visible {
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 5px;
 }
@@ -66,11 +68,6 @@ a:focus-visible {
 
 .wordmark span {
   color: var(--accent);
-}
-
-.site-label {
-  color: var(--muted);
-  font-size: 0.875rem;
 }
 
 .introduction {
@@ -129,11 +126,83 @@ h3 {
     width: calc(100% - 2rem);
   }
 
-  .site-label {
-    flex-basis: 100%;
-  }
-
   .empty-state {
     padding-inline: 0;
   }
+}
+
+.account-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  min-width: 0;
+}
+
+.account-name {
+  overflow-wrap: anywhere;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.account {
+  margin: 3rem auto;
+  max-width: 30rem;
+}
+
+.account h1 {
+  font-size: clamp(2.5rem, 7vw, 3.5rem);
+}
+
+.account-form {
+  display: grid;
+  gap: 1.5rem;
+  margin-block: 2rem;
+}
+
+.form-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem;
+}
+
+.form-field input {
+  background: #fff;
+  border: 1px solid var(--muted);
+  border-radius: 0.25rem;
+  color: var(--ink);
+  font: inherit;
+  padding: 0.65rem;
+  width: 100%;
+}
+
+.button {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 0.25rem;
+  color: var(--paper);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+}
+
+.form-error {
+  border-left: 3px solid var(--accent);
+  color: var(--accent);
+  padding-left: 1rem;
 }

@@ -28,5 +28,5 @@ jobs:
         run: python -m pip check
       - name: Lint Python
         run: python -m pylint --rcfile=pyproject.toml *.py tests
-      - name: Run smoke test
+      - name: Run tests
         run: python -m unittest discover -s tests -v

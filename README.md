@@ -19,8 +19,10 @@ Python, Flask, SQLite, SQL, HTML, Jinja, and CSS.
 
 ## Current status
 
-The application currently serves an introductory homepage. Accounts, flight
-logging, search, comments, and the database are not implemented yet.
+Registration, login, and logout are available. Usernames preserve capitalization
+but are unique and matched without regard to case. Accounts stay signed in until
+logout or seven days of inactivity. Flight logging, search, comments, and profiles
+are not implemented yet.
 
 ## Run locally
 
@@ -30,20 +32,49 @@ Install Python 3.12, then run these commands from the project directory:
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+```
+
+Generate a private session key once (this refuses to overwrite an existing `.env`):
+
+```sh
+python -c "import secrets; open('.env', 'x').write('FLIGHTBOOK_SECRET_KEY=' + secrets.token_hex(32) + '\n')"
+```
+
+Load the key into your terminal, initialize the database, and start the app:
+
+```sh
+set -a
+source .env
+set +a
+python -m flask --app app init-db
 python -m flask --app app run --debug
 ```
 
 Open http://127.0.0.1:5000 in your browser. Stop the server with Ctrl+C.
 On Windows, create the environment with `py -3.12 -m venv .venv` and activate
-it in PowerShell with `.venv\Scripts\Activate.ps1` instead.
+it in PowerShell with `.venv\Scripts\Activate.ps1` instead. Replace the three
+key-loading lines with:
+
+```powershell
+$env:FLIGHTBOOK_SECRET_KEY = (Get-Content .env) -replace '^FLIGHTBOOK_SECRET_KEY=', ''
+```
 
 If port 5000 is occupied, append `--port 5001` to the run command and open
 http://127.0.0.1:5001 instead. The development server is for local use only.
-No database initialization or secret configuration is needed at this stage.
+The database is stored in `flightbook.db`. Initialization preserves existing
+accounts. Both the database and `.env` are excluded from Git.
 
-## Verify the foundation
+Reuse the same key each time you start the app; load it again in each new terminal.
+Requests fail with a configuration error if `FLIGHTBOOK_SECRET_KEY` is missing.
+Replacing the key signs out existing sessions. For HTTPS hosting, also set
+`FLIGHTBOOK_COOKIE_SECURE=1` so browsers only send the session cookie over HTTPS.
 
-- Open `/` and confirm the Flightbook introduction and empty state appear.
+## Manual verification
+
+- Create an account and confirm you are signed in with your chosen username spelling.
+- Log out, then log in using a different capitalization of the same username.
+- Try a duplicate username, mismatched passwords, and incorrect login credentials.
+- Confirm errors preserve the username but never fill in password fields.
 - Check the layout at narrow and wide browser widths, including text zoom.
 - Use Tab to reveal the skip link, then Enter to move to the main content.
 - Follow the Flightbook home link and confirm it returns to `/`.
@@ -61,7 +92,9 @@ python -m unittest discover -s tests -v
 ```
 
 `requirements-dev.txt` includes the application dependencies and adds Pylint.
-The smoke test checks homepage rendering and its linked stylesheets.
+Tests use temporary databases and a test-only signing key. They cover homepage
+rendering, account flows, validation, password storage, CSRF protection, and session
+renewal and expiry.
 
 GitHub Actions runs these checks on Python 3.12 for pull requests and pushes to
 `main`. The `Quality checks` job must pass before merging, alongside owner approval.
