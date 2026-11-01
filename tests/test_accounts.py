@@ -109,6 +109,7 @@ class AccountsTest(unittest.TestCase):
             ("Markus", "", ""),
             ("Markus", "a" * 14, "a" * 14),
             ("Markus", "a" * 129, "a" * 129),
+            ("Markus", "🌍" * 129, "🌍" * 129),
             ("Markus", self.password, "different password"),
         ]
         for username, password, confirmation in cases:
@@ -128,6 +129,16 @@ class AccountsTest(unittest.TestCase):
             with self.subTest(username=username):
                 self.assertEqual(self.register(username, password).status_code, 302)
                 self.post_form("/logout")
+
+    def test_unicode_password_is_preserved_in_full(self):
+        """Count Unicode code points and verify the entire password at login."""
+        password = "🌍" * 128
+        self.assertEqual(self.register(password=password).status_code, 302)
+        self.post_form("/logout")
+        truncated = self.post_form("/login", {"username": "Markus", "password": password[:64]})
+        self.assertEqual(truncated.status_code, 400)
+        complete = self.post_form("/login", {"username": "Markus", "password": password})
+        self.assertEqual(complete.status_code, 302)
 
     def test_failed_login_uses_same_message_and_preserves_username(self):
         """Invalid credentials cannot authenticate or reveal which field failed."""

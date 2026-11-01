@@ -48,7 +48,7 @@ def load_session():
         if not expected or not secrets.compare_digest(
             expected.encode("utf-8"), supplied.encode("utf-8")
         ):
-            abort(403, description="This form has expired. Reload the page and try again.")
+            abort(403, description="Form expired. Go back, refresh the form, and try again.")
     if "csrf_token" not in session:
         session["csrf_token"] = secrets.token_hex(32)
 
