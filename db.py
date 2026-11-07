@@ -10,6 +10,8 @@ def get_connection():
     """Reuse one connection for the current application context."""
     if "db" not in g:
         g.db = sqlite3.connect(current_app.config["DATABASE"])
+        # SQLite's built-in lower() only handles ASCII; airport names can be international.
+        g.db.create_function("casefold", 1, str.casefold, deterministic=True)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
     return g.db

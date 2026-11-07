@@ -1,0 +1,20 @@
+{% macro airport_field(key, label, value, error, required=false, picked_name=none, focus=false) %}
+<div class="form-field">
+  <label for="{{ key }}">{{ label }} (airport code)</label>
+  <input id="{{ key }}" name="{{ key }}" value="{{ value }}"
+         maxlength="3" pattern="[A-Za-z]{3}" spellcheck="false" autocapitalize="characters"
+         {% if focus %}autofocus{% endif %}
+         {% if required %}required{% endif %}
+         {% if error %}aria-invalid="true" aria-describedby="error-{{ key }}"{% endif %}>
+  {% if error %}
+    <p class="form-error" id="error-{{ key }}" role="alert">{{ error }}</p>
+  {% endif %}
+  {% if picked_name %}
+    <p class="field-hint" role="status">{{ value }} — {{ picked_name }}</p>
+  {% endif %}
+  <button type="submit" class="airport-search" name="find" value="{{ key }}" formnovalidate
+          aria-label="Find airport for {{ 'departure' if label == 'From' else 'arrival' }}">
+    Find airport
+  </button>
+</div>
+{% endmacro %}
