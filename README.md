@@ -142,3 +142,23 @@ expiry, flight ownership and validation, airport import and lookup, and paginati
 
 GitHub Actions runs these checks on Python 3.12 for pull requests and pushes to
 `main`. The `Quality checks` job must pass before merging, alongside owner approval.
+
+### Flight-list query performance
+
+Lists show the range and total for the applied filters. Page links retain filters;
+the back link on a flight returns to its entry in the original list.
+
+Local SQLite benchmark: 100,000 synthetic entries, 100 owners with 1,000 entries
+each, three equally frequent route/airline combinations. Median milliseconds for
+page two across 15 warm runs; database queries only, excluding HTML rendering.
+
+| Scope and filter | Previous list | Count alone | List including count |
+| --- | ---: | ---: | ---: |
+| Public, no filters | 0.04 | 0.27 | 0.33 |
+| Personal, no filters | 0.05 | 0.02 | 0.07 |
+| Public, exact route | 0.04 | 2.82 | 2.86 |
+| Public, airline substring | 0.06 | 10.38 | 10.64 |
+| Personal, airline substring | 0.07 | 0.63 | 0.72 |
+
+The count uses the same filters as the list without joining airport or category
+tables. No separate count runs when the page contains the final matching entry.

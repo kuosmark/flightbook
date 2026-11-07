@@ -131,8 +131,8 @@ def search_filters(args):
     return filters, errors
 
 
-def list_flights(page, filters, user_id=None):
-    """Apply all filters within the list's scope before ordering and paging."""
+def listing_conditions(filters, user_id):
+    """Use identical predicates for fetching entries and counting matches."""
     conditions = []
     parameters = []
     if user_id is not None:
@@ -147,10 +147,27 @@ def list_flights(page, filters, user_id=None):
         conditions.append("instr(casefold(coalesce(f.airline, '')), ?) > 0")
         parameters.append(filters["airline"].casefold())
     where = " WHERE " + " AND ".join(conditions) if conditions else ""
+    return where, parameters
+
+
+def count_flights(filters, user_id=None):
+    """Count matching flights without joining display-only tables."""
+    where, parameters = listing_conditions(filters, user_id)
+    return db.query("SELECT COUNT(*) AS total FROM flights f" + where, parameters)[0]["total"]
+
+
+def list_flights(page, filters, user_id=None):
+    """Return one page and its exact total in the original list order."""
+    where, parameters = listing_conditions(filters, user_id)
     order = (" ORDER BY f.departure_date DESC, f.id DESC"
              if user_id is not None else " ORDER BY f.id DESC")
-    return db.query(FLIGHT_SELECT + where + order + " LIMIT ? OFFSET ?",
-                    parameters + [PAGE_SIZE + 1, (page - 1) * PAGE_SIZE])
+    offset = (page - 1) * PAGE_SIZE
+    rows = db.query(FLIGHT_SELECT + where + order + " LIMIT ? OFFSET ?",
+                    parameters + [PAGE_SIZE + 1, offset])
+    if not rows:
+        return [], 0
+    total = count_flights(filters, user_id) if len(rows) > PAGE_SIZE else offset + len(rows)
+    return rows[:PAGE_SIZE], total
 
 
 def delete(flight_id, user_id):
