@@ -3,7 +3,7 @@
 {% block content %}
 <section class="flight-editor">
   <h1>Delete flight?</h1>
-  <p>{{ flight.departure_code }} → {{ flight.arrival_code }} on {{ flight.departure_date }}</p>
+  <p>{{ flight.departure_code }} → {{ flight.arrival_code }} on <time datetime="{{ flight.departure_date }}">{{ flight.departure_date|flight_date }}</time></p>
   <p>This cannot be undone.</p>
   <form method="post" class="form-actions">
     <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">

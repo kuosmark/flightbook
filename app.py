@@ -151,6 +151,13 @@ def airport_picker(data, values, field_labels, context=None):
                            more=len(matches) > flights.AIRPORT_RESULT_LIMIT), {}
 
 
+@app.template_filter("flight_date")
+def flight_date(value):
+    """Display an ISO departure date without a leading zero on the day."""
+    day = date.fromisoformat(value)
+    return f"{day.day} {day:%b %Y}"
+
+
 def return_to_search(previous, draft, picked):
     """Redirect to the applied list; carry unfinished fields for this return only."""
     filters, _ = flights.search_filters(previous)
