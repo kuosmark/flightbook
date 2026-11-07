@@ -166,6 +166,20 @@ def return_to_search(previous, draft, picked):
     return redirect(target + "#" + field, code=303)
 
 
+def applied_filter_labels(filters):
+    """Describe the submitted filters in form order, resolving airport codes together."""
+    names = flights.airport_names((filters.get("from"), filters.get("to"))) if filters else {}
+    labels = []
+    for key, label in (("from", "From"), ("to", "To"), ("airline", "Airline"),
+                       ("flight_number", "Flight number")):
+        if key in filters:
+            value = filters[key]
+            if key in ("from", "to"):
+                value = f"{names.get(value, 'Unlisted airport')} ({value})"
+            labels.append((label, value))
+    return labels
+
+
 def flight_listing(user_id=None):
     """Render either recent public entries or the current user's flight history."""
     draft, errors = flights.search_filters(request.args)
@@ -198,7 +212,7 @@ def flight_listing(user_id=None):
         abort(404)
     if not 1 <= page <= 1000000:
         abort(404)
-    names = flights.airport_names((filters.get("from"), filters.get("to"))) if filters else {}
+    filters_open = bool(filters or draft or focus or request.args.get("filter") == "1")
     entries = [] if errors else flights.list_flights(page, filters, user_id)
     if page > 1 and not entries and not errors:
         abort(404)
@@ -206,7 +220,8 @@ def flight_listing(user_id=None):
                            has_next=len(entries) > flights.PAGE_SIZE,
                            mine=user_id is not None,
                            filters=filters, draft=draft, errors=errors,
-                           names=names, picked=picked, focus=focus), (
+                           filters_open=filters_open, picked=picked, focus=focus,
+                           applied_filters=applied_filter_labels(filters) if not errors else []), (
                                400 if errors else 200)
 
 

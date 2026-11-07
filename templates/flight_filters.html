@@ -1,35 +1,49 @@
 {% from "airport_field.html" import airport_field %}
-  <details class="flight-filters"{% if filters or draft or focus or request.args.get('filter') == '1' %} open{% endif %}>
-    <summary>Filter flights</summary>
-    <form class="flight-search form-grid" role="search" aria-label="Search flights" method="get" action="{{ url_for(request.endpoint) }}">
-      <input type="hidden" name="applied_page" value="{{ page }}">
-      {% for key, value in filters.items() if not errors %}
-        <input type="hidden" name="applied_{{ key }}" value="{{ value }}">
-      {% endfor %}
-      <button type="submit" hidden>Search</button>
-      {% for key, label in [('from', 'From'), ('to', 'To')] %}
-      {{ airport_field(key, label, draft.get(key, ''), errors.get(key), picked_name=picked.get(key), focus=focus == key) }}
-      {% endfor %}
-      {% for key, label in [('airline', 'Airline'), ('flight_number', 'Flight number')] %}
+
+<details class="flight-filters"{% if filters_open %} open{% endif %}>
+  <summary>Filter flights</summary>
+  <form class="flight-search form-grid" role="search" aria-label="Search flights"
+        method="get" action="{{ url_for(request.endpoint) }}">
+    <input type="hidden" name="applied_page" value="{{ page }}">
+    {% for key, value in filters.items() if not errors %}
+      <input type="hidden" name="applied_{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <button type="submit" hidden>Search</button>
+
+    {% for key, label in [('from', 'From'), ('to', 'To')] %}
+      {{ airport_field(
+          key, label, draft.get(key, ''), errors.get(key),
+          picked_name=picked.get(key), focus=focus == key
+      ) }}
+    {% endfor %}
+    {% for key, label in [('airline', 'Airline'), ('flight_number', 'Flight number')] %}
       <div class="form-field">
         <label for="filter-{{ key }}">{{ label }}</label>
         <input id="filter-{{ key }}" name="{{ key }}" value="{{ draft.get(key, '') }}"
-               {% if key in errors %}aria-invalid="true" aria-describedby="error-{{ key }}"{% endif %}>
-        {% if key in errors %}<p id="error-{{ key }}" class="form-error">{{ errors[key] }}</p>{% endif %}
+               {% if key in errors %}
+                 aria-invalid="true" aria-describedby="error-{{ key }}"
+               {% endif %}>
+        {% if key in errors %}
+          <p id="error-{{ key }}" class="form-error">{{ errors[key] }}</p>
+        {% endif %}
       </div>
-      {% endfor %}
-      <div class="form-actions">
-        <button class="button" type="submit">Search</button>
-        {% if filters or draft %}<a href="{{ url_for(request.endpoint) }}">Clear</a>{% endif %}
-      </div>
-    </form>
-  </details>
-  {% if filters and not errors %}
-  <p class="applied-route"><strong>Showing:</strong>
-    {% for key, label in [('from', 'From'), ('to', 'To'), ('airline', 'Airline'), ('flight_number', 'Flight number')] if key in filters -%}
-    {{ ' · ' if not loop.first }}{{ label }}: {% if key in ('from', 'to') %}{{ names.get(filters[key], 'Unlisted airport') }} ({{ filters[key] }}){% else %}{{ filters[key] }}{% endif %}
-    {%- endfor %}
+    {% endfor %}
+
+    <div class="form-actions">
+      <button class="button" type="submit">Search</button>
+      {% if filters or draft %}
+        <a href="{{ url_for(request.endpoint) }}">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+</details>
+{% if applied_filters %}
+  <p class="applied-route">
+    <strong>Showing:</strong>
+    {% for label, value in applied_filters %}
+      {{ label }}: {{ value }}{{ ' ·' if not loop.last }}
+    {% endfor %}
   </p>
-  {% elif draft and not errors %}
+{% elif draft and not errors %}
   <p class="applied-route">Showing all {{ 'your' if mine else 'public' }} flights.</p>
-  {% endif %}
+{% endif %}
