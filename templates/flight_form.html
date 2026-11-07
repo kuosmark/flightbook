@@ -1,66 +1,83 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit flight' if editing else 'Add flight' }} · Flightbook{% endblock %}
+{% from "airport_field.html" import airport_field %}
+{% set title = 'Edit flight' if editing else 'Add flight' %}
+{% macro feedback(key) %}
+  {% if key in errors %}<p class="form-error" id="error-{{ key }}" role="alert">{{ errors[key] }}</p>{% endif %}
+{% endmacro %}
+{% macro invalid(key) %}{% if key in errors %} aria-invalid="true" aria-describedby="error-{{ key }}"{% endif %}{% endmacro %}
+{% block title %}{{ title }}: {{ 'Flight details' if details else 'Route and date' }} · Flightbook{% endblock %}
 {% block content %}
 <section class="flight-editor">
-  <h1>{{ 'Edit flight' if editing else 'Add flight' }}</h1>
-  <p>Flight entries are public. Only you can edit or delete yours.</p>
-  {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+  <p class="field-hint">{{ title }} · Step {{ 2 if details else 1 }} of 2</p>
+  <h1>{{ 'Flight details' if details else 'Route and date' }}</h1>
   <form method="post" class="account-form">
-    {# Enter submits the flight; lookup buttons are explicit secondary actions. #}
-    <button type="submit" hidden>Save flight</button>
     <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
-    <div class="form-field">
-      <label for="departure-date">Departure date</label>
-      <input id="departure-date" name="departure_date" type="date" value="{{ values.departure_date }}" max="{{ today }}" required>
-    </div>
+    {% set route_fields = ('departure_code', 'arrival_code', 'departure_date') %}
+    {% for key, value in values.items() if (key in route_fields) == details %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    {% if not details %}
+    <button type="submit" name="action" value="continue" hidden>Continue</button>
     <div class="form-grid">
-      {% for field, label in [('departure_code', 'Departure airport'), ('arrival_code', 'Arrival airport')] %}
-      <div class="form-field">
-        <label for="{{ field }}">{{ label }}</label>
-        <p class="field-hint" id="{{ field }}-hint">Enter a three-letter code, e.g. AMS. Search with one or more letters.</p>
-        <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" pattern="[A-Za-z]{3}" maxlength="3" required aria-describedby="{{ field }}-hint" autocomplete="off" spellcheck="false">
-        <button class="airport-search" type="submit" name="airport_search" value="{{ field }}" formnovalidate>Search airports</button>
-        {% if lookup_field == field and request.form.get('airport_search') %}
-        {% if results %}
-        <ul class="airport-results">
-          {% for airport in results %}
-          <li><button type="submit" name="airport_choice" value="{{ field }}:{{ airport.iata_code }}" formnovalidate>{{ airport.iata_code }} — {{ airport.name }} ({{ airport.iso_country }})</button></li>
-          {% endfor %}
-        </ul>
-        {% if has_more %}<p class="field-hint">Showing the first {{ result_limit }} matches. Refine your search for more specific results.</p>{% endif %}
-        {% else %}<p role="status">No matches. Enter one to three letters of an airport code. You can still save an unlisted three-letter code.</p>{% endif %}
-        {% endif %}
-      </div>
+      {% for key, label in [('departure_code', 'From'), ('arrival_code', 'To')] %}
+      {{ airport_field(key, label, values[key], errors.get(key), required=true, picked_name=picked.get(key), focus=request.form.get('find') == key) }}
       {% endfor %}
+    </div>
+    <div class="form-field">
+      <label for="departure_date">Departure date</label>
+      <input id="departure_date" name="departure_date" type="date" value="{{ values.departure_date }}" max="{{ today }}" required{{ invalid('departure_date') }}>
+      {{ feedback('departure_date') }}
+    </div>
+    <div class="form-actions">
+      <button class="button" name="action" value="continue">Continue</button>
+      <a href="{{ url_for('my_flights') }}">Cancel</a>
+    </div>
+    {% else %}
+    <button type="submit" name="action" value="save" hidden>Save flight</button>
+    <div class="route-summary">
+      {% for key, label in [('departure_code', 'From'), ('arrival_code', 'To')] %}
+      <p><strong>{{ label }}:</strong> {{ names.get(values[key], 'Unlisted airport') }} ({{ values[key] }})</p>
+      {% if values[key] not in names %}
+      <label><input type="checkbox" name="confirm_{{ key }}" value="{{ values[key] }}"{% if request.form.get('confirm_' ~ key) == values[key] %} checked{% endif %} required{{ invalid(key) }}> Use {{ values[key] }} as entered</label>
+      {{ feedback(key) }}
+      {% endif %}
+      {% endfor %}
+      <p><strong>Departure date:</strong> <time datetime="{{ values.departure_date }}">{{ values.departure_date }}</time></p>
+      <button class="link-button" name="action" value="route" formnovalidate>Change route or date</button>
     </div>
     <h2>Optional details</h2>
     <div class="form-grid">
-      {% for field, label, hint in [('airline', 'Airline', 'Airline name, e.g. Finnair'), ('flight_number', 'Flight number', 'E.g. AY123, without spaces'), ('aircraft', 'Aircraft type', 'E.g. Airbus A350-900'), ('seat', 'Seat number', 'E.g. 12A')] %}
+      {% for key, label in [('airline', 'Airline'), ('flight_number', 'Flight number'), ('aircraft', 'Aircraft type'), ('seat', 'Seat')] %}
       <div class="form-field">
-        <label for="{{ field }}">{{ label }}</label>
-        <p class="field-hint" id="{{ field }}-hint">{{ hint }}</p>
-        <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" aria-describedby="{{ field }}-hint"{% if field == 'flight_number' %} pattern="\s*(?:[A-Za-z][A-Za-z0-9]|[0-9][A-Za-z])[0-9]{1,4}[A-Za-z]?\s*"{% elif field == 'seat' %} pattern="[1-9][0-9]{0,2}[A-Za-z]"{% endif %}>
+        <label for="{{ key }}">{{ label }}</label>
+        <input id="{{ key }}" name="{{ key }}" value="{{ values[key] }}"{% if key == 'flight_number' and key not in errors %} aria-describedby="number-hint"{% endif %} maxlength="{{ {'flight_number': 7, 'seat': 4}.get(key, 100) }}"{{ invalid(key) }}>
+        {% if key == 'flight_number' %}<p class="field-hint" id="number-hint">Include the airline code, without spaces.</p>{% endif %}
+        {{ feedback(key) }}
       </div>
       {% endfor %}
     </div>
     <div class="form-field">
       <label for="cabin">Cabin class</label>
-      <select id="cabin" name="cabin_id">
+      <select id="cabin" name="cabin_id"{{ invalid('cabin_id') }}>
         <option value="">Not specified</option>
         {% for cabin in cabins %}<option value="{{ cabin.id }}"{% if values.cabin_id == cabin.id|string %} selected{% endif %}>{{ cabin.name }}</option>{% endfor %}
       </select>
+      {{ feedback('cabin_id') }}
     </div>
-    <fieldset class="purpose-options">
+    <fieldset class="purpose-options"{{ invalid('purpose_id') }}>
       <legend>Journey purpose</legend>
       <label><input type="radio" name="purpose_id" value=""{% if not values.purpose_id %} checked{% endif %}> Not specified</label>
-      {% for purpose in purposes %}
-      <label><input type="radio" name="purpose_id" value="{{ purpose.id }}"{% if values.purpose_id == purpose.id|string %} checked{% endif %}> {{ purpose.name }}</label>
-      {% endfor %}
+      {% for purpose in purposes %}<label><input type="radio" name="purpose_id" value="{{ purpose.id }}"{% if values.purpose_id == purpose.id|string %} checked{% endif %}> {{ purpose.name }}</label>{% endfor %}
+      {{ feedback('purpose_id') }}
     </fieldset>
-    <div class="form-actions">
-      <button class="button" type="submit">Save flight</button>
-      <a href="{{ url_for('my_flights') }}">Cancel</a>
+    <div>
+      <p>Flight entries are public.</p>
+      <div class="form-actions">
+        <button class="button" name="action" value="save">Save flight</button>
+        <a href="{{ url_for('my_flights') }}">Cancel</a>
+      </div>
     </div>
+    {% endif %}
   </form>
 </section>
 {% endblock %}

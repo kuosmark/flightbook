@@ -44,7 +44,7 @@ class FlightsTest(unittest.TestCase):
         """Submit a CSRF-protected form."""
         return self.client.post(path, data={"csrf_token": "test-token", **(values or {})})
 
-    def submit_rendered_form(self, path, values=None):
+    def _submit_rendered_form(self, path, values=None):
         """Submit the token actually rendered in an accessible flight form."""
         response = self.client.get(path)
         token = csrf_token(response)
@@ -52,7 +52,14 @@ class FlightsTest(unittest.TestCase):
 
     def create(self, **changes):
         """Create an entry and return its detail URL."""
-        response = self.submit_rendered_form("/flights/new", self.values | changes)
+        values = self.values | changes
+        preview = self._submit_rendered_form("/flights/new", values | {"action": "continue"})
+        self.assertEqual(preview.status_code, 200)
+        self.assertIn(b"Change route or date", preview.data)
+        response = self.client.post("/flights/new", data=values | {
+            "action": "save", "csrf_token": csrf_token(preview),
+            "confirm_departure_code": values["departure_code"],
+            "confirm_arrival_code": values["arrival_code"]})
         self.assertEqual(response.status_code, 302)
         return response.location
 
@@ -74,13 +81,13 @@ class FlightsTest(unittest.TestCase):
         self.assertEqual(guest.get(path).status_code, 200)
         self.assertIn(path, guest.get("/").get_data(as_text=True))
         self.assertNotIn("Edit flight", guest.get(path).get_data(as_text=True))
-        response = self.submit_rendered_form(
-            path + "/edit", self.values | {"airline": "Updated airline"})
+        response = self._submit_rendered_form(
+            path + "/edit", self.values | {"airline": "Updated airline", "action": "save"})
         self.assertEqual(response.status_code, 302)
         self.assertIn("Updated airline", self.client.get(path).get_data(as_text=True))
         self.assertEqual(self.client.get(path + "/delete").status_code, 200)
         self.assertEqual(self.client.get(path).status_code, 200)
-        self.assertEqual(self.submit_rendered_form(path + "/delete").status_code, 302)
+        self.assertEqual(self._submit_rendered_form(path + "/delete").status_code, 302)
         self.assertEqual(self.client.get(path).status_code, 404)
 
     def test_other_users_and_guests_cannot_modify_entries(self):
@@ -118,7 +125,7 @@ class FlightsTest(unittest.TestCase):
         ]
         for field, value in cases:
             with self.subTest(field=field, value=value):
-                response = self.post("/flights/new", self.values | {field: value})
+                response = self.post("/flights/new", self.values | {field: value, "action": "save"})
                 self.assertEqual(response.status_code, 400)
                 self.assertIn('role="alert"', response.get_data(as_text=True))
         with app.app_context():
@@ -135,7 +142,7 @@ class FlightsTest(unittest.TestCase):
                                 "cabin_id": "3", "purpose_id": "7"}
         for target in ("/flights/new", path + "/edit"):
             with self.subTest(target=target):
-                response = self.submit_rendered_form(target, values)
+                response = self._submit_rendered_form(target, values | {"action": "save"})
                 self.assertEqual(response.status_code, 400)
                 self.assertIn('role="alert"', response.get_data(as_text=True))
                 rendered = Page(response).values
@@ -166,7 +173,7 @@ class FlightsTest(unittest.TestCase):
             self.assertEqual(len(flights.choices("purpose")), 3)
         self.assertEqual(self.client.get(path).status_code, 200)
         page = self.client.get("/flights/new").get_data(as_text=True)
-        self.assertIn("Search airports", page)
+        self.assertIn("Find airport", page)
         self.assertNotIn("<datalist", page)
 
     def test_pagination_and_personal_order(self):
@@ -201,38 +208,48 @@ class FlightsTest(unittest.TestCase):
         for page in ("0", "-1", "abc", "100000000000000000", "3"):
             self.assertEqual(self.client.get("/?page=" + page).status_code, 404)
 
-    def test_airport_lookup_preserves_form_without_saving(self):
-        """Searching and selecting bypass flight validation and preserve unsaved fields."""
-        values = self.values | {"departure_date": "", "departure_code": "he",
-                                "airline": "Unsaved airline", "arrival_code": "AMS"}
-        response = self.post("/flights/new", values | {"airport_search": "departure_code"})
-        self.assertEqual(response.status_code, 200)
-        page = response.get_data(as_text=True)
-        self.assertIn("Helsinki Vantaa Airport", page)
-        self.assertIn('value="Unsaved airline"', page)
-        selected = self.post("/flights/new", values | {"airport_choice": "departure_code:HEL"})
-        self.assertEqual(selected.status_code, 200)
-        self.assertIn('value="HEL"', selected.get_data(as_text=True))
-        self.assertIn('value="AMS"', selected.get_data(as_text=True))
+    def test_route_review_keeps_draft_without_writing(self):
+        """Find, choose, continue, and change route never write or discard entered details."""
+        path = "/flights/new"
+        draft = self.values | {"departure_date": "", "airline": "Unsaved & Co"}
+        lookup = draft | {"find": "departure_code", "q": "London"}
+        cancelled = self.post(path, lookup | {"cancel_find": "1"})
+        self.assertEqual(Page(cancelled).values["departure_code"], "HEL")
+        self.assertNotIn(b"Helsinki Vantaa Airport", cancelled.data)
+        options = self.post(path, lookup)
+        self.assertIn(b"London Heathrow Airport (LHR)", options.data)
+        self.assertIn(b"London Gatwick Airport (LGW)", options.data)
+        selection = self.post(path, lookup | {"pick": "LHR"})
+        self.assertIn("LHR — London Heathrow Airport", selection.get_data(as_text=True))
+        values = Page(selection).values
+        self.assertEqual(values["departure_code"], "LHR")
+        self.assertEqual(values["airline"], "Unsaved & Co")
+        values.update(departure_date="2025-04-03", action="continue")
+        preview = self.post(path, values)
+        self.assertIn(b"London Heathrow Airport (LHR)", preview.data)
+        self.assertIn(b"Amsterdam Airport Schiphol (AMS)", preview.data)
+        self.assertIn(b'<time datetime="2025-04-03">2025-04-03</time>', preview.data)
+        back = self.post(path, values | {"action": "route", "seat": "12A"})
+        self.assertEqual(Page(back).values["seat"], "12A")
+        changed = self.post(path, Page(back).values | {"arrival_code": "HEL", "action": "continue"})
+        self.assertIn(b"Helsinki Vantaa Airport (HEL)", changed.data)
+        self.assertIn(b"London Heathrow Airport (LHR)", changed.data)
         with app.app_context():
-            self.assertEqual(db.query("SELECT COUNT(*) AS count FROM flights")[0]["count"], 0)
-        path = self.create()
-        response = self.post(path + "/edit", values | {"airport_search": "arrival_code"})
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("Unsaved airline", self.client.get(path).get_data(as_text=True))
-        self.assertEqual(self.post(path + "/edit", {"airport_search": "invalid"}).status_code, 400)
+            self.assertEqual(db.query("SELECT COUNT(*) AS n FROM flights")[0]["n"], 0)
 
-    def test_airport_search_matches_only_code_prefixes(self):
-        """Full codes return one result; names and malformed queries never match."""
+    def test_unlisted_airport_needs_confirmation_for_that_code(self):
+        """Do not save an unlisted airport using an absent or stale confirmation."""
+        values = self.values | {"departure_code": "ZZZ"}
+        preview = self.post("/flights/new", values | {"action": "continue"})
+        self.assertIn(b"Use ZZZ as entered", preview.data)
+        for confirmation in ("", "XXX"):
+            response = self.post("/flights/new", values | {
+                "action": "save", "confirm_departure_code": confirmation})
+            self.assertEqual(response.status_code, 400)
         with app.app_context():
-            self.assertEqual([row["iata_code"] for row in flights.search_airports(" ams ")],
-                             ["AMS"])
-            matches = flights.search_airports("he")
-            self.assertTrue(matches)
-            self.assertTrue(all(row["iata_code"].startswith("HE") for row in matches))
-            for query in ("Helsinki", "%_", "", "123", "A1", "Ä", "AMSS"):
-                self.assertEqual(flights.search_airports(query), [])
-            self.assertLessEqual(len(flights.search_airports("a")), 21)
+            self.assertEqual(db.query("SELECT COUNT(*) AS n FROM flights")[0]["n"], 0)
+        self.assertEqual(self.post("/flights/new", values | {
+            "action": "save", "confirm_departure_code": "ZZZ"}).status_code, 302)
 
     def test_missing_flight_returns_not_found(self):
         """Missing entries have consistent status on view, edit, and delete."""

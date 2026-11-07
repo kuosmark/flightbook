@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Find {{ label }} airport · Flightbook{% endblock %}
+{% block content %}
+<section class="flight-editor">
+  <h1>Find {{ label }} airport</h1>
+  <form method="{{ request.method|lower }}" class="account-form">
+    {% if request.method == 'POST' %}<input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">{% endif %}
+    {% for key, value in values.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <input type="hidden" name="find" value="{{ field }}">
+    <div class="form-field">
+      <label for="q">City or airport name</label>
+      <input id="q" name="q" value="{{ query }}" maxlength="100" autofocus>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="button">Find airports</button>
+      <button type="submit" class="link-button" name="cancel_find" value="1">Go back</button>
+    </div>
+    {% if matches %}
+    <ul class="airport-results">
+      {% for airport in matches %}
+      <li><button name="pick" value="{{ airport.iata_code }}">{{ airport.name }} ({{ airport.iata_code }}) — {{ airport.municipality or '' }}{% if airport.municipality %}, {% endif %}{{ airport.iso_country }}</button></li>
+      {% endfor %}
+    </ul>
+    {% if more %}<p>More airports match. Refine your search to narrow the list.</p>{% endif %}
+    {% elif searched %}
+    <p role="status">{{ 'Enter 2–100 characters.' if not 2 <= query|length <= 100 else 'No airports found. Try another name, or go back and enter the code.' }}</p>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}

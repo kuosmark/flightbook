@@ -35,11 +35,10 @@ cabin class, and journey purpose are optional. Codes are normalized to uppercase
 flight numbers cannot contain internal spaces. Airport names come from a local
 snapshot. Unknown three-letter airport codes can still be saved.
 
-Airport lookup accepts one to three letters of an airport code. Select **Search
-airports**, then choose a result. Partial codes return prefix matches; a full code
-returns only that airport, if listed. Lookup preserves unsaved flight details.
-Airport names also appear on saved entries. No external service is contacted
-during normal use.
+Enter the route and departure date, then select **Continue** to check the airport
+names before adding optional details and saving. **Find airport** searches the local
+snapshot by city or airport name. Going back preserves your entries. Confirm an
+unlisted code explicitly before saving it.
 
 Ratings, reviews, flight-entry search, comments, and public traveller profiles
 are planned but not yet implemented.
@@ -107,10 +106,9 @@ Replacing the key signs out existing sessions. For HTTPS hosting, also set
 - Try a duplicate username, mismatched passwords, and incorrect login credentials.
   Check that errors preserve the username but never refill password fields.
 - Add a past flight from `HEL` to `AMS` and confirm both airport names appear.
-- Search airports by partial code, select a result, and check that other form
-  fields are preserved. A search for `AMS` should return only Amsterdam Schiphol.
-- Try a future date, malformed airport code, and flight number containing spaces.
-- Press Enter in a completed flight form and confirm it saves instead of searching airports.
+- Look up London and choose a specific airport. Verify the route and date before saving.
+- Change the route after entering optional details and confirm those values are retained.
+- Try a future date, malformed flight number, and unlisted three-letter airport code.
 - Edit a flight, cancel its delete confirmation, then delete a disposable test entry.
 - Log out and confirm flights remain public but edit and delete controls disappear.
 - Sign in as another user and confirm they cannot edit or delete the first user's
