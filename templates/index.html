@@ -16,10 +16,12 @@
       <p class="flight-meta">
         <time datetime="{{ flight.departure_date }}">{{ flight.departure_date|flight_date }}</time>
         {% if flight.airline or flight.flight_number %}
-        <span>· {{ [flight.airline, flight.flight_number]|select|join(' ') }}</span>
+          <span>· {{ [flight.airline, flight.flight_number]|select|join(' ') }}</span>
         {% endif %}
       </p>
-      {% if not mine %}<p class="field-hint">Logged by {{ flight.username }}</p>{% endif %}
+      {% if not mine %}
+        <p class="field-hint">Logged by {{ flight.username }}</p>
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
