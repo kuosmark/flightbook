@@ -110,12 +110,45 @@ def get_flight(flight_id):
     return rows[0] if rows else None
 
 
-def list_flights(page, user_id=None):
-    """Fetch a bounded page plus one row to determine whether more exist."""
-    where = " WHERE f.user_id = ?" if user_id is not None else ""
+def search_filters(args):
+    """Read only supported, nonempty filters and report errors next to their fields."""
+    filters = {}
+    errors = {}
+    for key in ("from", "to", "airline", "flight_number"):
+        value = args.get(key, "").strip()
+        if not value:
+            continue
+        if key != "airline" and value.isascii():
+            value = value.upper()
+        filters[key] = value
+        if key in ("from", "to"):
+            if error := airport_code_error(value):
+                errors[key] = error
+        elif key == "flight_number" and not FLIGHT_NUMBER.fullmatch(value):
+            errors[key] = "Enter a full flight number, such as AY123."
+        elif key == "airline" and len(value) > 100:
+            errors[key] = "Use 100 characters or fewer."
+    return filters, errors
+
+
+def list_flights(page, filters, user_id=None):
+    """Apply all filters within the list's scope before ordering and paging."""
+    conditions = []
+    parameters = []
+    if user_id is not None:
+        conditions.append("f.user_id = ?")
+        parameters.append(user_id)
+    for key, column in (("from", "departure_code"), ("to", "arrival_code"),
+                        ("flight_number", "flight_number")):
+        if key in filters:
+            conditions.append(f"f.{column} = ?")
+            parameters.append(filters[key])
+    if "airline" in filters:
+        conditions.append("instr(casefold(coalesce(f.airline, '')), ?) > 0")
+        parameters.append(filters["airline"].casefold())
+    where = " WHERE " + " AND ".join(conditions) if conditions else ""
     order = (" ORDER BY f.departure_date DESC, f.id DESC"
              if user_id is not None else " ORDER BY f.id DESC")
-    parameters = [user_id] if user_id is not None else []
     return db.query(FLIGHT_SELECT + where + order + " LIMIT ? OFFSET ?",
                     parameters + [PAGE_SIZE + 1, (page - 1) * PAGE_SIZE])
 

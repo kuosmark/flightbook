@@ -40,7 +40,13 @@ names before adding optional details and saving. **Find airport** searches the l
 snapshot by city or airport name. Going back preserves your entries. Confirm an
 unlisted code explicitly before saving it.
 
-Ratings, reviews, flight-entry search, comments, and public traveller profiles
+Open **Filter flights** on the public feed or My flights to search by departure airport, arrival airport, airline,
+or flight number. All supplied filters must match. Airport codes and flight numbers
+match exactly; airline names match a literal substring. Matching ignores case.
+
+Selecting an airport fills the filter. Only **Search** applies it.
+
+Ratings, reviews, comments, and public traveller profiles
 are planned but not yet implemented.
 
 Airport reference data is included in

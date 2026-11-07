@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ 'My flights' if mine else 'Recent flights' }} · Flightbook{% endblock %}
+{% block title %}{{ 'My flights' if mine else 'Public flights' }} · Flightbook{% endblock %}
 {% block content %}
 <section class="flight-section">
   <div class="section-heading">
-    <h1>{{ 'My flights' if mine else 'Recent flights' }}</h1>
+    <h1>{{ 'My flights' if mine else 'Public flights' }}</h1>
     {% if g.user %}<a class="button" href="{{ url_for('new_flight') }}">Add flight</a>{% endif %}
   </div>
+  {% include "flight_filters.html" %}
   {% if entries %}
   <ul class="flight-list">
     {% for flight in entries %}
@@ -16,13 +17,15 @@
     </li>
     {% endfor %}
   </ul>
-  {% else %}
+  {% elif filters and not errors %}
+  <p class="empty-state">No flights match these filters.</p>
+  {% elif not errors %}
   <div class="empty-state"><h2>No flights yet</h2><p>{{ 'Add your first flight.' if g.user else 'Log in to add a flight.' }}</p></div>
   {% endif %}
   <nav class="pagination" aria-label="Flight pages">
-    {% if page > 1 %}<a href="{{ url_for('my_flights' if mine else 'index', page=page-1) }}">Previous</a>{% endif %}
+    {% if page > 1 %}<a href="{{ url_for('my_flights' if mine else 'index', page=page-1, **filters) }}">Previous</a>{% endif %}
     {% if entries %}<span>Page {{ page }}</span>{% endif %}
-    {% if has_next %}<a href="{{ url_for('my_flights' if mine else 'index', page=page+1) }}">Next</a>{% endif %}
+    {% if has_next %}<a href="{{ url_for('my_flights' if mine else 'index', page=page+1, **filters) }}">Next</a>{% endif %}
   </nav>
 </section>
 {% endblock %}
