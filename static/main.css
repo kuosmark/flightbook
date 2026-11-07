@@ -329,8 +329,13 @@ a.button {
   grid-column: 1 / -1;
 }
 
+.result-count {
+  margin-block: 0.75rem 0;
+}
+
 .flight-list {
   list-style: none;
+  margin-block-start: 0.25rem;
   padding: 0;
 }
 
@@ -404,4 +409,13 @@ a.button {
 
 .route-summary p {
   margin: 0 0 0.5rem;
+}
+
+.pagination {
+  gap: 0.25rem;
+}
+
+.pagination a,
+.pagination strong {
+  padding: 0.5rem;
 }

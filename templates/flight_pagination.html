@@ -1,0 +1,11 @@
+{% if pagination.last > 1 %}
+  <nav class="pagination" aria-label="Flight pages">
+    {% if page > 1 %}<a rel="prev" href="{{ url_for(request.endpoint, page=page-1, **filters) }}">← Previous</a>{% endif %}
+    {% for number in pagination.pages %}
+      {% if number == page %}<strong aria-current="page" aria-label="Page {{ page }}">{{ page }}</strong>
+      {% elif number %}<a aria-label="Page {{ number }}" href="{{ url_for(request.endpoint, page=number, **filters) }}">{{ number }}</a>
+      {% else %}<span aria-hidden="true">…</span>{% endif %}
+    {% endfor %}
+    {% if page < pagination.last %}<a rel="next" href="{{ url_for(request.endpoint, page=page+1, **filters) }}">Next →</a>{% endif %}
+  </nav>
+  {% endif %}

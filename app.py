@@ -220,16 +220,30 @@ def flight_listing(user_id=None):
     if not 1 <= page <= 1000000:
         abort(404)
     filters_open = bool(filters or draft or focus or request.args.get("filter") == "1")
-    entries = [] if errors else flights.list_flights(page, filters, user_id)
+    entries, total = ([], 0) if errors else flights.list_flights(page, filters, user_id)
     if page > 1 and not entries and not errors:
         abort(404)
-    return render_template("index.html", entries=entries[:flights.PAGE_SIZE], page=page,
-                           has_next=len(entries) > flights.PAGE_SIZE,
+    return render_template("index.html", entries=entries, page=page,
+                           pagination=flight_pagination(page, total),
                            mine=user_id is not None,
                            filters=filters, draft=draft, errors=errors,
                            filters_open=filters_open, picked=picked, focus=focus,
                            applied_filters=applied_filter_labels(filters) if not errors else []), (
                                400 if errors else 200)
+
+
+def flight_pagination(page, total):
+    """Build a small window of links regardless of the size of the diary."""
+    size = flights.PAGE_SIZE
+    last = (total + size - 1) // size
+    numbers = sorted({1, last, *range(max(1, page - 1), min(last, page + 1) + 1)})
+    pages = []
+    for number in numbers:
+        if pages and number > pages[-1] + 1:
+            pages.append(number - 1 if number == pages[-1] + 2 else None)
+        pages.append(number)
+    return {"start": (page - 1) * size + 1, "end": min(page * size, total),
+            "total": total, "last": last, "pages": pages}
 
 
 def require_login():
@@ -260,7 +274,13 @@ def my_flights():
 @app.get("/flights/<int:flight_id>")
 def flight_detail(flight_id):
     """Show a flight to any visitor."""
-    return render_template("flight.html", flight=find_flight(flight_id))
+    mine = request.args.get("scope") == "mine"
+    filters, _ = flights.search_filters(request.args)
+    page = request.args.get("page", 1, type=int)
+    back_url = url_for("my_flights" if mine else "index", page=page if page > 1 else None,
+                       _anchor=f"flight-{flight_id}", **filters)
+    return render_template("flight.html", flight=find_flight(flight_id),
+                           mine=mine, back_url=back_url)
 
 
 def flight_form(entry=None):

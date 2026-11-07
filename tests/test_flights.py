@@ -15,6 +15,27 @@ import flights
 import users
 
 
+def flight_paths(links):
+    """Read entry paths independently of their return context."""
+    paths = [urlsplit(link).path for link in links]
+    return [path for path in paths
+            if path.startswith("/flights/") and path.removeprefix("/flights/").isdigit()]
+
+
+def check_return_link(test, links, route, filters, page_number):
+    """Follow a result and its back link as rendered in a filtered list."""
+    detail = next(link for link in links if flight_paths([link]))
+    target = urlsplit(detail).path.rsplit("/", 1)[1]
+    back = next(urlsplit(link) for link in Page(test.client.get(detail)).links
+                if urlsplit(link).fragment == f"flight-{target}")
+    test.assertEqual(back.path, route)
+    params = {key: [value] for key, value in filters.items()}
+    if page_number != 1:
+        params["page"] = [str(page_number)]
+    test.assertEqual(parse_qs(back.query), params)
+    test.assertIn(f'id="flight-{target}"', test.client.get(back.geturl()).get_data(as_text=True))
+
+
 class FlightsTest(unittest.TestCase):
     """Exercise flight requests against an isolated database."""
 
@@ -200,8 +221,7 @@ class FlightsTest(unittest.TestCase):
                     response = self.client.get(f"{route}?page={page_number}")
                     self.assertEqual(response.status_code, 200)
                     links = Page(response).links
-                    entries = [link for link in links if link.startswith("/flights/")
-                               and link.rsplit("/", 1)[1].isdigit()]
+                    entries = flight_paths(links)
                     self.assertEqual(entries, [f"/flights/{entry}" for entry in expected_ids])
                     seen.extend(entries)
                     if page_number == 1:
@@ -283,8 +303,7 @@ class FlightsTest(unittest.TestCase):
                 response = guest.get("/", query_string=query)
                 self.assertEqual(response.status_code, 200)
                 links = Page(response).links
-                self.assertEqual([link for link in links if link.startswith("/flights/")
-                                      and link.rsplit("/", 1)[1].isdigit()], expected)
+                self.assertEqual(flight_paths(links), expected)
                 if not expected:
                     self.assertIn(b"No flights match these filters.", response.data)
 
@@ -305,7 +324,7 @@ class FlightsTest(unittest.TestCase):
                     self.assertIn(route, page.links)
                     self.assertNotIn(path, page.links)
             blank = self.client.get(route, query_string={"from": " "})
-            self.assertIn(path, Page(blank).links)
+            self.assertIn(path, flight_paths(Page(blank).links))
 
     def test_filtered_pagination_preserves_scope_and_filters(self):
         """Following rendered links keeps the search, list order, and personal ownership."""
@@ -323,9 +342,9 @@ class FlightsTest(unittest.TestCase):
                 with self.subTest(route=route, page=page_number):
                     self.assertEqual(response.status_code, 200)
                     links = Page(response).links
-                    self.assertEqual([link for link in links if link.startswith("/flights/")
-                                      and link.rsplit("/", 1)[1].isdigit()],
+                    self.assertEqual(flight_paths(links),
                                      [f"/flights/{entry}" for entry in batch])
+                    check_return_link(self, links, route, filters, page_number)
                     paging = {link for link in links
                               if urlsplit(link).path == route and "page=" in link}
                     paging = [urlsplit(link) for link in paging]
@@ -367,14 +386,14 @@ class FlightsTest(unittest.TestCase):
                 self.assertEqual(form.values["airline"], "A&B")
                 self.assertIn(b"London Heathrow Airport (LHR)", page.data)
                 self.assertIn(b"Airline: Old", page.data)
-                self.assertIn(old, form.links)
-                self.assertNotIn(new, form.links)
+                self.assertIn(old, flight_paths(form.links))
+                self.assertNotIn(new, flight_paths(form.links))
             form.values.pop("csrf_token", None)
             submitted = self.client.get(route, query_string=form.values, follow_redirects=True)
             self.assertEqual(submitted.request.path, route)
             self.assertEqual(dict(submitted.request.args), {"to": "AMS", "airline": "A&B"})
-            self.assertIn(new, Page(submitted).links)
-            self.assertNotIn(old, Page(submitted).links)
+            self.assertIn(new, flight_paths(Page(submitted).links))
+            self.assertNotIn(old, flight_paths(Page(submitted).links))
             self.assertEqual(self.client.get(route + "?find=other").status_code, 400)
         self.assertEqual(app.test_client().get("/my-flights?find=from&q=London").status_code, 401)
 
@@ -390,9 +409,9 @@ class FlightsTest(unittest.TestCase):
         self.assertEqual(page.values["from"], "H")
         self.assertEqual(page.values["to"], "LHR")
         self.assertIn(b"Showing all public flights.", response.data)
-        self.assertIn(b"Page 2", response.data)
-        self.assertIn(f"/flights/{ids[0]}", page.links)
-        self.assertNotIn(f"/flights/{ids[-1]}", page.links)
+        self.assertIn("21–21 of 21 flights".encode(), response.data)
+        self.assertIn(f"/flights/{ids[0]}", flight_paths(page.links))
+        self.assertNotIn(f"/flights/{ids[-1]}", flight_paths(page.links))
 
     def test_missing_flight_returns_not_found(self):
         """Missing entries have consistent status on view, edit, and delete."""

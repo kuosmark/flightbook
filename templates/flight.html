@@ -2,7 +2,7 @@
 {% block title %}{{ flight.departure_code }} → {{ flight.arrival_code }} · Flightbook{% endblock %}
 {% block content %}
 <section class="flight-section">
-  <p><a href="{{ url_for('index') }}">← All flights</a></p>
+  <p><a href="{{ back_url }}">← Back to {{ 'My flights' if mine else 'Public flights' }}</a></p>
   <h1>{{ flight.departure_code }} → {{ flight.arrival_code }}</h1>
   <p>{{ flight.departure_name or flight.departure_code }} → {{ flight.arrival_name or flight.arrival_code }}</p>
   <p>Traveller: {{ flight.username }}</p>
