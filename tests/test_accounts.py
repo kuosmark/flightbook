@@ -236,5 +236,5 @@ class AccountsTest(unittest.TestCase):
     def test_missing_secret_has_clear_error(self):
         """Do not silently run account forms without a signing key."""
         with patch.dict(app.config, SECRET_KEY=None):
-            with self.assertRaisesRegex(RuntimeError, "Set FLIGHTBOOK_SECRET_KEY"):
+            with self.assertRaisesRegex(RuntimeError, "Run init-db"):
                 self.client.get("/login")

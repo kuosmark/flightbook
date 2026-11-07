@@ -10,12 +10,13 @@ import click
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
 import db
+from session_key import load_key
 import users
 import flights
 
 app = Flask(__name__)
 app.config.update(
-    SECRET_KEY=os.environ.get("FLIGHTBOOK_SECRET_KEY"),
+    SECRET_KEY=load_key(app.instance_path),
     DATABASE=os.path.join(app.root_path, "flightbook.db"),
     PERMANENT_SESSION_LIFETIME=timedelta(days=7),
     SESSION_COOKIE_HTTPONLY=True,
@@ -28,7 +29,9 @@ app.teardown_appcontext(db.close_connection)
 
 @app.cli.command("init-db")
 def init_db_command():
-    """Create the application's database tables."""
+    """Prepare local session signing and initialize the database."""
+    if not app.secret_key:
+        app.secret_key = load_key(app.instance_path, create=True)
     db.init_db()
     click.echo("Database initialized.")
 
@@ -37,7 +40,7 @@ def init_db_command():
 def load_session():
     """Load the current account and protect state-changing requests."""
     if not app.secret_key:
-        raise RuntimeError("Set FLIGHTBOOK_SECRET_KEY before running Flightbook.")
+        raise RuntimeError("Run init-db or set FLIGHTBOOK_SECRET_KEY before starting Flightbook.")
     g.user = None
     if "user_id" in session:
         g.user = users.get_user(session["user_id"])
