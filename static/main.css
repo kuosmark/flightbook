@@ -344,6 +344,13 @@ a.button {
   margin: 0.5rem 0;
 }
 
+.flight-meta {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.3em;
+}
+
 .flight-route {
   font-size: 1.5rem;
   font-weight: 600;

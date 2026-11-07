@@ -12,7 +12,7 @@
       {{ feedback(key) }}
     {% endif %}
   {% endfor %}
-  <p><strong>Departure date:</strong> <time datetime="{{ values.departure_date }}">{{ values.departure_date }}</time></p>
+  <p><strong>Departure date:</strong> <time datetime="{{ values.departure_date }}">{{ values.departure_date|flight_date }}</time></p>
   <button type="submit" class="link-button" name="action" value="route" formnovalidate>Change route or date</button>
 </div>
 <h2>Optional details</h2>

@@ -7,7 +7,7 @@
   <p>{{ flight.departure_name or flight.departure_code }} → {{ flight.arrival_name or flight.arrival_code }}</p>
   <p>Traveller: {{ flight.username }}</p>
   <dl class="flight-details">
-    <dt>Departure date</dt><dd><time datetime="{{ flight.departure_date }}">{{ flight.departure_date }}</time></dd>
+    <dt>Departure date</dt><dd><time datetime="{{ flight.departure_date }}">{{ flight.departure_date|flight_date }}</time></dd>
     {% for field, label in [('airline', 'Airline'), ('flight_number', 'Flight number'), ('aircraft', 'Aircraft type'), ('seat', 'Seat'), ('cabin_name', 'Cabin class'), ('purpose_name', 'Journey purpose')] %}
     {% if flight[field] %}<dt>{{ label }}</dt><dd>{{ flight[field] }}</dd>{% endif %}
     {% endfor %}

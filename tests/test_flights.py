@@ -78,6 +78,11 @@ class FlightsTest(unittest.TestCase):
                                   "aircraft": "Airbus A350", "seat": "12A",
                                   "cabin_id": "3", "purpose_id": "7"}
         self.assertEqual({field: edit_values.get(field) for field in flights.FIELDS}, expected)
+        for route, public in (("/", True), ("/my-flights", False)):
+            listing = self.client.get(route)
+            self.assertIn(b">15 Jan 2025</time>", listing.data)
+            self.assertIn(b"Finnair AY123", listing.data)
+            self.assertEqual(b"Logged by Traveller" in listing.data, public)
         guest = app.test_client()
         self.assertEqual(guest.get(path).status_code, 200)
         self.assertIn(path, guest.get("/").get_data(as_text=True))
@@ -229,7 +234,7 @@ class FlightsTest(unittest.TestCase):
         preview = self.post(path, values)
         self.assertIn(b"London Heathrow Airport (LHR)", preview.data)
         self.assertIn(b"Amsterdam Airport Schiphol (AMS)", preview.data)
-        self.assertIn(b'<time datetime="2025-04-03">2025-04-03</time>', preview.data)
+        self.assertIn(b'<time datetime="2025-04-03">3 Apr 2025</time>', preview.data)
         back = self.post(path, values | {"action": "route", "seat": "12A"})
         self.assertEqual(Page(back).values["seat"], "12A")
         changed = self.post(path, Page(back).values | {"arrival_code": "HEL", "action": "continue"})

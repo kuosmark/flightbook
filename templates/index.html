@@ -13,7 +13,15 @@
     <li>
       <a class="flight-route" href="{{ url_for('flight_detail', flight_id=flight.id) }}">{{ flight.departure_code }} → {{ flight.arrival_code }}</a>
       <p>{{ flight.departure_name or flight.departure_code }} → {{ flight.arrival_name or flight.arrival_code }}</p>
-      <p class="field-hint"><time datetime="{{ flight.departure_date }}">{{ flight.departure_date }}</time> · {{ flight.username }}{% if flight.airline %} · {{ flight.airline }}{% endif %}</p>
+      <p class="flight-meta">
+        <time datetime="{{ flight.departure_date }}">{{ flight.departure_date|flight_date }}</time>
+        {% if flight.airline or flight.flight_number %}
+          <span>· {{ [flight.airline, flight.flight_number]|select|join(' ') }}</span>
+        {% endif %}
+      </p>
+      {% if not mine %}
+        <p class="field-hint">Logged by {{ flight.username }}</p>
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
