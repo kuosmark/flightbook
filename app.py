@@ -225,11 +225,22 @@ def flight_listing(user_id=None):
         abort(404)
     return render_template("index.html", entries=entries, page=page,
                            pagination=flight_pagination(page, total),
+                           return_params=list_return_params(page, filters, user_id),
                            mine=user_id is not None,
                            filters=filters, draft=draft, errors=errors,
                            filters_open=filters_open, picked=picked, focus=focus,
                            applied_filters=applied_filter_labels(filters) if not errors else []), (
                                400 if errors else 200)
+
+
+def list_return_params(page, filters, user_id):
+    """Carry the list scope, page and filters when a traveller opens an entry."""
+    params = {}
+    if user_id is not None:
+        params["scope"] = "mine"
+    if page > 1:
+        params["page"] = page
+    return params | filters
 
 
 def flight_pagination(page, total):
