@@ -1,128 +1,63 @@
 # Flightbook
 
-Flightbook is a social flight diary for recording and sharing flights, developed for
-the University of Helsinki’s *Tietokannat ja web-ohjelmointi* course.
+Flightbook is a social flight diary for the University of Helsinki’s *Tietokannat ja web-ohjelmointi* course.
+Anyone can browse and search flight entries. Sign in to log a flight. Only you can edit or delete your own entries.
 
-## Planned features
+## Features
 
-- Create an account and log in.
-- Log flights with details such as airline, route, date, aircraft, and cabin class.
-- Edit and delete your own flight entries.
-- Add an optional rating and review to your flight entries.
-- Classify flights by cabin class and journey purpose using options stored in the database.
-- Browse and search your own and other users' flight entries by airport, airline, or flight number.
-- Comment on your own and other users' flights.
-- View traveller profiles showing flight history, total flights, and counts of airlines
-  flown with and airports visited.
+- Log, edit, and delete flights with their route, departure date, and optional details like airline, flight number, and cabin class.
+- Browse recent public entries or view your own flight history by departure date.
+- Search either list by departure airport, arrival airport, airline, or flight number.
 
-## Technologies
+**Planned:** flight ratings and reviews, comments, and traveller profiles with flight histories and statistics.
 
-Python, Flask, SQLite, SQL, HTML, Jinja, and CSS.
-
-## Current status
-
-Registration, login, and logout are available. Usernames preserve capitalization
-but are unique and matched without regard to case. Accounts stay signed in until
-logout or seven days of inactivity.
-
-Signed-in users can add, edit, and delete their own public flight entries. Everyone
-can browse recent entries and flight details. My flights shows personal history
-by departure date; both lists show 20 entries per page.
-
-Flights require a departure date (today or earlier) and three-letter departure
-and arrival airport codes. Airline name, flight number, aircraft type, seat,
-cabin class, and journey purpose are optional. Codes are normalized to uppercase;
-flight numbers cannot contain internal spaces. Airport names come from a local
-snapshot. Unknown three-letter airport codes can still be saved.
-
-Enter the route and departure date, then select **Continue** to check the airport
-names before adding optional details and saving. **Find airport** searches the local
-snapshot by city or airport name. Going back preserves your entries. Confirm an
-unlisted code explicitly before saving it.
-
-Open **Filter flights** on the public feed or My flights to search by departure airport, arrival airport, airline,
-or flight number. All supplied filters must match. Airport codes and flight numbers
-match exactly; airline names match a literal substring. Matching ignores case.
-
-Selecting an airport fills the filter. Only **Search** applies it.
-
-Ratings, reviews, comments, and public traveller profiles
-are planned but not yet implemented.
-
-Airport reference data is included in
-[`data/airports.csv`](data/airports.csv). See [data sources and terms](data/README.md).
+Built with Python 3.12, Flask, SQLite, raw SQL, Jinja, HTML, and CSS. Airport names come from a [bundled snapshot](data/README.md), so airport lookup works offline.
 
 ## Run locally
 
-Install Python 3.12 and Git, then clone the repository:
+### First-time setup
+
+Install Git and Python 3.12, then clone the repository:
 
 ```sh
 git clone https://github.com/kuosmark/flightbook.git
 cd flightbook
 ```
 
-Create a virtual environment and install the application dependencies (macOS/Linux):
+Create and activate the virtual environment:
 
 ```sh
 python3.12 -m venv .venv
 source .venv/bin/activate
+```
+
+On Windows PowerShell, use `py -3.12 -m venv .venv` and `.venv\Scripts\Activate.ps1` instead.
+
+Install the dependencies and initialize Flightbook:
+
+```sh
 python -m pip install -r requirements.txt
-```
-
-Generate a private session key once (this refuses to overwrite an existing `.env`):
-
-```sh
-python -c "import secrets; open('.env', 'x').write('FLIGHTBOOK_SECRET_KEY=' + secrets.token_hex(32) + '\n')"
-```
-
-Load the key into your terminal, initialize the database, and start the app:
-
-```sh
-set -a
-source .env
-set +a
 python -m flask --app app init-db
+```
+
+This creates the database, imports airport and category data, and generates a private
+session key in `instance/session.key`. You can run `init-db` again without replacing
+the key or losing accounts and flights.
+
+### Start the app
+
+From the project directory with the virtual environment active, run:
+
+```sh
 python -m flask --app app run --debug
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser. Stop the server with Ctrl+C.
-On Windows, create the environment with `py -3.12 -m venv .venv` and activate
-it in PowerShell with `.venv\Scripts\Activate.ps1` instead. Replace the three
-key-loading lines with:
+Open [localhost:5000](http://127.0.0.1:5000). The diary starts empty. Create an account and add your first flight.
 
-```powershell
-$env:FLIGHTBOOK_SECRET_KEY = (Get-Content .env) -replace '^FLIGHTBOOK_SECRET_KEY=', ''
-```
+If the port is busy, append `--port 5001` to the run command and open [localhost:5001](http://127.0.0.1:5001). Stop the local server with Ctrl+C.
 
-If port 5000 is occupied, append `--port 5001` to the run command and open
-[http://127.0.0.1:5001](http://127.0.0.1:5001) instead. The development server is for local use only.
-The database is stored in `flightbook.db`. Initialization preserves existing
-accounts and flight entries and imports the bundled airport snapshot and category
-choices. Run `python -m flask --app app init-db` again after updating the bundled
-airport data. Both the database and `.env` are excluded from Git.
-
-Reuse the same key each time you start the app; load it again in each new terminal.
-Requests fail with a configuration error if `FLIGHTBOOK_SECRET_KEY` is missing.
-Replacing the key signs out existing sessions. For HTTPS hosting, also set
-`FLIGHTBOOK_COOKIE_SECURE=1` so browsers only send the session cookie over HTTPS.
-
-## Manual verification
-
-- Create an account, then log out and log in with different username capitalization.
-- Try a duplicate username, mismatched passwords, and incorrect login credentials.
-  Check that errors preserve the username but never refill password fields.
-- Add a past flight from `HEL` to `AMS` and confirm both airport names appear.
-- Look up London and choose a specific airport. Verify the route and date before saving.
-- Change the route after entering optional details and confirm those values are retained.
-- Try a future date, malformed flight number, and unlisted three-letter airport code.
-- Edit a flight, cancel its delete confirmation, then delete a disposable test entry.
-- Log out and confirm flights remain public but edit and delete controls disappear.
-- Sign in as another user and confirm they cannot edit or delete the first user's
-  flight, including through its edit and delete URLs.
-- Check narrow and wide layouts, text zoom, and keyboard navigation. Use Tab to
-  reveal the skip link, then Enter to move to the main content.
-- Follow the Flightbook home link and confirm it returns to `/`.
-- Visit a nonexistent URL and confirm the server returns HTTP 404.
+On later starts, activate the environment and run the same Flask command.
+If you already set `FLIGHTBOOK_SECRET_KEY`, Flightbook uses it instead of the local key.
 
 ## Development checks
 
@@ -135,30 +70,4 @@ python -m pylint --rcfile=pyproject.toml *.py tests
 python -m unittest discover -s tests -v
 ```
 
-`requirements-dev.txt` includes the application dependencies and adds Pylint.
-Tests use temporary databases and a test-only signing key. They cover homepage
-rendering, account flows, password storage, CSRF protection, session renewal and
-expiry, flight ownership and validation, airport import and lookup, and pagination.
-
-GitHub Actions runs these checks on Python 3.12 for pull requests and pushes to
-`main`. The `Quality checks` job must pass before merging, alongside owner approval.
-
-### Flight-list query performance
-
-Lists show the range and total for the applied filters. Page links retain filters;
-the back link on a flight returns to its entry in the original list.
-
-Local SQLite benchmark: 100,000 synthetic entries, 100 owners with 1,000 entries
-each, three equally frequent route/airline combinations. Median milliseconds for
-page two across 15 warm runs; database queries only, excluding HTML rendering.
-
-| Scope and filter | Previous list | Count alone | List including count |
-| --- | ---: | ---: | ---: |
-| Public, no filters | 0.04 | 0.27 | 0.33 |
-| Personal, no filters | 0.05 | 0.02 | 0.07 |
-| Public, exact route | 0.04 | 2.82 | 2.86 |
-| Public, airline substring | 0.06 | 10.38 | 10.64 |
-| Personal, airline substring | 0.07 | 0.63 | 0.72 |
-
-The count uses the same filters as the list without joining airport or category
-tables. No separate count runs when the page contains the final matching entry.
+Tests use a temporary database and won’t change your diary.
