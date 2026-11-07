@@ -12,7 +12,7 @@
   {% if picked_name %}
     <p class="field-hint" role="status">{{ value }} — {{ picked_name }}</p>
   {% endif %}
-  <button class="airport-search" name="find" value="{{ key }}" formnovalidate
+  <button type="submit" class="airport-search" name="find" value="{{ key }}" formnovalidate
           aria-label="Find airport for {{ 'departure' if label == 'From' else 'arrival' }}">
     Find airport
   </button>

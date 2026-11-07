@@ -13,7 +13,7 @@
     {% endif %}
   {% endfor %}
   <p><strong>Departure date:</strong> <time datetime="{{ values.departure_date }}">{{ values.departure_date }}</time></p>
-  <button class="link-button" name="action" value="route" formnovalidate>Change route or date</button>
+  <button type="submit" class="link-button" name="action" value="route" formnovalidate>Change route or date</button>
 </div>
 <h2>Optional details</h2>
 <div class="form-grid">
@@ -65,7 +65,7 @@
 <div>
   <p>Flight entries are public.</p>
   <div class="form-actions">
-    <button class="button" name="action" value="save">Save flight</button>
+    <button type="submit" class="button" name="action" value="save">Save flight</button>
     <a href="{{ url_for('my_flights') }}">Cancel</a>
   </div>
 </div>

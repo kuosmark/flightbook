@@ -23,7 +23,7 @@
       <ul class="airport-results">
         {% for airport in matches %}
           <li>
-            <button name="pick" value="{{ airport.iata_code }}">
+            <button type="submit" name="pick" value="{{ airport.iata_code }}">
               {{ airport.name }} ({{ airport.iata_code }}) —
               {% if airport.municipality %}{{ airport.municipality }}, {% endif %}{{ airport.iso_country }}
             </button>

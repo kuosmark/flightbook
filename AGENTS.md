@@ -17,6 +17,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Inspect relevant code before editing and preserve unrelated or uncommitted changes.
 - Prefer readable code, clear naming, small functions, and existing patterns. Avoid unnecessary dependencies and abstractions.
 - Follow the [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) when writing HTML and CSS, while respecting the course requirements.
+- Write Jinja templates in the order the user sees the page. Prepare data such as field groups in Python; keep labels, markup, and display conditions in Jinja. Split distinct screens into named templates, and break complex tags across lines so conditional attributes are easy to review.
 - Use SQL for database operations and aggregations. Select columns explicitly, define appropriate constraints, and avoid unnecessary queries.
 
 ## Quality and verification
