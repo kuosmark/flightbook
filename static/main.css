@@ -32,6 +32,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+summary:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
@@ -303,6 +304,29 @@ h3 {
 a.button {
   display: inline-block;
   text-decoration: none;
+}
+
+.flight-filters {
+  border-bottom: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.flight-filters summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+  padding-block: 0.625rem;
+}
+
+.flight-search {
+  margin-top: 0.5rem;
+  max-width: 44rem;
+  padding-bottom: 1rem;
+}
+
+.flight-search .form-actions {
+  grid-column: 1 / -1;
 }
 
 .flight-list {

@@ -129,19 +129,85 @@ def logout():
     return redirect(url_for("index"))
 
 
+def airport_picker(data, values, field_labels, context=None):
+    """Resolve an explicit picker action without writing the draft or changing its scope."""
+    field = data.get("find")
+    if field not in field_labels:
+        abort(400)
+    if "cancel_find" in data:
+        return None, {}
+    if "pick" in data:
+        code = data["pick"]
+        names = flights.airport_names((code, code))
+        if code not in names:
+            abort(400)
+        values[field] = code
+        return None, {field: names[code]}
+    query = data.get("q", "").strip()
+    matches = flights.find_airports(query) if 2 <= len(query) <= 100 else []
+    return render_template("airport_picker.html", field=field, label=field_labels[field],
+                           values=values | (context or {}), query=query, searched="q" in data,
+                           matches=matches[:flights.AIRPORT_RESULT_LIMIT],
+                           more=len(matches) > flights.AIRPORT_RESULT_LIMIT), {}
+
+
+def return_to_search(previous, draft, picked):
+    """Redirect to the applied list; carry unfinished fields for this return only."""
+    filters, _ = flights.search_filters(previous)
+    if previous.get("page", "1") != "1":
+        filters["page"] = previous["page"]
+    target = url_for(request.endpoint, **(filters or {"filter": "1"}))
+    field = request.args["find"]
+    # A normal draft is at most 113 characters; do not put oversized input in a cookie.
+    if sum(map(len, draft.values())) > 256:
+        abort(400)
+    session["airport_return"] = {"target": target, "draft": draft, "picked": picked,
+                                 "field": field}
+    return redirect(target + "#" + field, code=303)
+
+
 def flight_listing(user_id=None):
     """Render either recent public entries or the current user's flight history."""
+    draft, errors = flights.search_filters(request.args)
+    filters = draft
+    focus = None
+    picked = {}
+    if "find" in request.args:
+        # The finder carries the last submitted search separately from unfinished edits.
+        previous = {key.removeprefix("applied_"): value for key, value in request.args.items()
+                    if key.startswith("applied_")}
+        filters, errors = flights.search_filters(previous)
+        context = {"applied_" + key: value for key, value in filters.items()}
+        context["applied_page"] = previous.get("page", "1")
+        picker, picked = airport_picker(
+            request.args, draft, {"from": "departure", "to": "arrival"}, context)
+        if picker:
+            return picker
+        return return_to_search(previous, draft, picked)
+    if "applied_page" in request.args:
+        # Keep submitted searches bookmarkable without the finder's hidden fields.
+        return redirect(url_for(request.endpoint, **(draft or {"filter": "1"})))
+    page_value = request.args.get("page", "1")
+    pending = session.get("airport_return")
+    if pending and pending["target"] == request.full_path.rstrip("?"):
+        session.pop("airport_return")
+        draft, picked, focus = pending["draft"], pending["picked"], pending["field"]
     try:
-        page = int(request.args.get("page", "1"))
+        page = int(page_value)
     except ValueError:
         abort(404)
     if not 1 <= page <= 1000000:
         abort(404)
-    entries = flights.list_flights(page, user_id)
-    if page > 1 and not entries:
+    names = flights.airport_names((filters.get("from"), filters.get("to"))) if filters else {}
+    entries = [] if errors else flights.list_flights(page, filters, user_id)
+    if page > 1 and not entries and not errors:
         abort(404)
     return render_template("index.html", entries=entries[:flights.PAGE_SIZE], page=page,
-                           has_next=len(entries) > flights.PAGE_SIZE, mine=user_id is not None)
+                           has_next=len(entries) > flights.PAGE_SIZE,
+                           mine=user_id is not None,
+                           filters=filters, draft=draft, errors=errors,
+                           names=names, picked=picked, focus=focus), (
+                               400 if errors else 200)
 
 
 def require_login():
@@ -173,28 +239,6 @@ def my_flights():
 def flight_detail(flight_id):
     """Show a flight to any visitor."""
     return render_template("flight.html", flight=find_flight(flight_id))
-
-
-def airport_picker(data, values, field_labels):
-    """Resolve an explicit picker action without writing the draft or changing its scope."""
-    field = data.get("find")
-    if field not in field_labels:
-        abort(400)
-    if "cancel_find" in data:
-        return None, {}
-    if "pick" in data:
-        code = data["pick"]
-        names = flights.airport_names((code, code))
-        if code not in names:
-            abort(400)
-        values[field] = code
-        return None, {field: names[code]}
-    query = data.get("q", "").strip()
-    matches = flights.find_airports(query) if 2 <= len(query) <= 100 else []
-    return render_template("airport_picker.html", field=field, label=field_labels[field],
-                           values=values, query=query, searched="q" in data,
-                           matches=matches[:flights.AIRPORT_RESULT_LIMIT],
-                           more=len(matches) > flights.AIRPORT_RESULT_LIMIT), {}
 
 
 def flight_form(entry=None):

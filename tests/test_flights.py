@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from urllib.parse import parse_qs, urlsplit
 from unittest.mock import patch
 
 from html_helpers import Page, csrf_token
@@ -250,6 +251,143 @@ class FlightsTest(unittest.TestCase):
             self.assertEqual(db.query("SELECT COUNT(*) AS n FROM flights")[0]["n"], 0)
         self.assertEqual(self.post("/flights/new", values | {
             "action": "save", "confirm_departure_code": "ZZZ"}).status_code, 302)
+
+    def test_search_matches_fields_and_combines_them(self):
+        """Routes have direction, numbers match in full, and airline text is literal."""
+        with app.app_context():
+            def add(**changes):
+                entry = flights.save(self.values | changes, self.owner)
+                return f"/flights/{entry}"
+
+            target = add(airline="AÉRO%_Air", flight_number="AY123")
+            reverse = add(departure_code="AMS", arrival_code="HEL", airline="AÉRO%_Air")
+            longer = add(airline="AÉROxxAir", flight_number="AY1234")
+            unknown = add(departure_code="ZZZ")
+            elsewhere = add(arrival_code="LHR", flight_number="AY123")
+        guest = app.test_client()
+        for query, expected in [
+            ({"from": " hel "}, [elsewhere, longer, target]),
+            ({"to": "ams"}, [unknown, longer, target]),
+            ({"from": "zzz"}, [unknown]),
+            ({"flight_number": " ay123 "}, [elsewhere, target]),
+            ({"airline": " éro%_ "}, [reverse, target]),
+            ({"airline": "' OR 1=1 --"}, []),
+            ({"from": "hel", "to": "ams", "airline": "air", "flight_number": "ay123"}, [target]),
+        ]:
+            with self.subTest(query=query):
+                response = guest.get("/", query_string=query)
+                self.assertEqual(response.status_code, 200)
+                links = Page(response).links
+                self.assertEqual([link for link in links if link.startswith("/flights/")
+                                      and link.rsplit("/", 1)[1].isdigit()], expected)
+                if not expected:
+                    self.assertIn(b"No flights match these filters.", response.data)
+
+    def test_search_validation_preserves_filters(self):
+        """Invalid input shows field errors; clearing the search restores the ordinary list."""
+        path = self.create()
+        for route in ("/", "/my-flights"):
+            for key, value in (("from", "H"), ("to", "12A"), ("flight_number", "AY 123"),
+                               ("airline", "x" * 101)):
+                with self.subTest(route=route, key=key):
+                    filters = {"from": "HEL", "airline": "Finnair", key: value}
+                    response = self.client.get(route, query_string=filters)
+                    self.assertEqual(response.status_code, 400)
+                    page = Page(response)
+                    self.assertEqual({k: page.values[k] for k in filters}, filters)
+                    html = response.get_data(as_text=True)
+                    self.assertIn(f'aria-describedby="error-{key}"', html)
+                    self.assertIn(route, page.links)
+                    self.assertNotIn(path, page.links)
+            blank = self.client.get(route, query_string={"from": " "})
+            self.assertIn(path, Page(blank).links)
+
+    def test_filtered_pagination_preserves_scope_and_filters(self):
+        """Following rendered links keeps the search, list order, and personal ownership."""
+        values = self.values | {"airline": "A&B", "flight_number": "AY123"}
+        with app.app_context():
+            ids = [flights.save(values, self.owner) for _ in range(20)]
+            older = flights.save(values | {"departure_date": "2020-01-01"}, self.owner)
+            other = flights.save(values, self.other)
+            flights.save(values | {"arrival_code": "LHR"}, self.owner)
+        filters = {"from": "HEL", "to": "AMS", "airline": "&", "flight_number": "AY123"}
+        for route, expected in (("/", [other, older, *reversed(ids)]),
+                                ("/my-flights", [*reversed(ids), older])):
+            response = self.client.get(route, query_string=filters)
+            for page_number, batch in ((1, expected[:20]), (2, expected[20:])):
+                with self.subTest(route=route, page=page_number):
+                    self.assertEqual(response.status_code, 200)
+                    links = Page(response).links
+                    self.assertEqual([link for link in links if link.startswith("/flights/")
+                                      and link.rsplit("/", 1)[1].isdigit()],
+                                     [f"/flights/{entry}" for entry in batch])
+                    paging = {link for link in links
+                              if urlsplit(link).path == route and "page=" in link}
+                    paging = [urlsplit(link) for link in paging]
+                    self.assertEqual(len(paging), 1)
+                    self.assertEqual(paging[0].path, route)
+                    params = {key: [value] for key, value in filters.items()}
+                    params["page"] = [str(3 - page_number)]
+                    self.assertEqual(parse_qs(paging[0].query), params)
+                    if page_number == 1:
+                        response = self.client.get(paging[0].geturl())
+        guest = app.test_client()
+        self.assertEqual(guest.get("/my-flights", query_string=filters).status_code, 401)
+
+    def test_finder_edits_only_the_draft_until_search(self):
+        """Changing airports must not apply any draft fields, even the airline."""
+        old = self.create(arrival_code="LHR", airline="Old airline")
+        new = self.create(arrival_code="AMS", airline="A&B")
+        for route in ("/", "/my-flights"):
+            initial = self.client.get(route, query_string={"to": "LHR", "airline": "Old"})
+            inputs = Page(initial).values
+            inputs.pop("csrf_token", None)  # Belongs to the separate logout form.
+            inputs.update(airline="A&B", find="to")
+            finder = self.client.get(route, query_string=inputs)
+            query = Page(finder).values | {"q": "schiphol"}
+            query.pop("csrf_token", None)
+            matches = self.client.get(route, query_string=query)
+            self.assertIn(b"Amsterdam Airport Schiphol (AMS)", matches.data)
+            for button, code in (({"cancel_find": "1"}, "LHR"), ({"pick": "AMS"}, "AMS")):
+                returned = self.client.get(route, query_string=query | button)
+                self.assertEqual(returned.status_code, 303)
+                self.assertEqual(urlsplit(returned.location).fragment, "to")
+                self.assertEqual(parse_qs(urlsplit(returned.location).query),
+                                 {"to": ["LHR"], "airline": ["Old"]})
+                page = self.client.get(returned.location)
+                form = Page(page)
+                self.assertEqual(form.values["to"], code)
+                self.assertEqual("AMS — Amsterdam Airport Schiphol".encode() in page.data,
+                                 "pick" in button)
+                self.assertEqual(form.values["airline"], "A&B")
+                self.assertIn(b"London Heathrow Airport (LHR)", page.data)
+                self.assertIn(b"Airline: Old", page.data)
+                self.assertIn(old, form.links)
+                self.assertNotIn(new, form.links)
+            form.values.pop("csrf_token", None)
+            submitted = self.client.get(route, query_string=form.values, follow_redirects=True)
+            self.assertEqual(submitted.request.path, route)
+            self.assertEqual(dict(submitted.request.args), {"to": "AMS", "airline": "A&B"})
+            self.assertIn(new, Page(submitted).links)
+            self.assertNotIn(old, Page(submitted).links)
+            self.assertEqual(self.client.get(route + "?find=other").status_code, 400)
+        self.assertEqual(app.test_client().get("/my-flights?find=from&q=London").status_code, 401)
+
+    def test_finder_preserves_unfiltered_page_with_an_incomplete_draft(self):
+        """Page two remains visible while picking an airport with another field unfinished."""
+        with app.app_context():
+            ids = [flights.save(self.values, self.owner) for _ in range(21)]
+        source = Page(self.client.get("/?page=2"))
+        query = source.values | {"from": "H", "find": "to", "pick": "LHR"}
+        response = self.client.get("/", query_string=query, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        page = Page(response)
+        self.assertEqual(page.values["from"], "H")
+        self.assertEqual(page.values["to"], "LHR")
+        self.assertIn(b"Showing all public flights.", response.data)
+        self.assertIn(b"Page 2", response.data)
+        self.assertIn(f"/flights/{ids[0]}", page.links)
+        self.assertNotIn(f"/flights/{ids[-1]}", page.links)
 
     def test_missing_flight_returns_not_found(self):
         """Missing entries have consistent status on view, edit, and delete."""
