@@ -8,8 +8,9 @@ import db
 PAGE_SIZE = 20
 AIRPORT_RESULT_LIMIT = 20
 FLIGHT_NUMBER = re.compile(r"(?=[A-Z0-9]{0,1}[A-Z])[A-Z0-9]{2}[0-9]{1,4}[A-Z]?")
-FIELDS = ("departure_date", "departure_code", "arrival_code", "airline", "flight_number",
-          "aircraft", "seat", "cabin_id", "purpose_id")
+ROUTE_FIELDS = ("departure_date", "departure_code", "arrival_code")
+DETAIL_FIELDS = ("airline", "flight_number", "aircraft", "seat", "cabin_id", "purpose_id")
+FIELDS = ROUTE_FIELDS + DETAIL_FIELDS
 
 
 def choices(kind):

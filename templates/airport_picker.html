@@ -4,8 +4,12 @@
 <section class="flight-editor">
   <h1>Find {{ label }} airport</h1>
   <form method="{{ request.method|lower }}" class="account-form">
-    {% if request.method == 'POST' %}<input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">{% endif %}
-    {% for key, value in values.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    {% if request.method == 'POST' %}
+      <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    {% endif %}
+    {% for key, value in values.items() %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
     <input type="hidden" name="find" value="{{ field }}">
     <div class="form-field">
       <label for="q">City or airport name</label>
@@ -16,14 +20,25 @@
       <button type="submit" class="link-button" name="cancel_find" value="1">Go back</button>
     </div>
     {% if matches %}
-    <ul class="airport-results">
-      {% for airport in matches %}
-      <li><button name="pick" value="{{ airport.iata_code }}">{{ airport.name }} ({{ airport.iata_code }}) — {{ airport.municipality or '' }}{% if airport.municipality %}, {% endif %}{{ airport.iso_country }}</button></li>
-      {% endfor %}
-    </ul>
-    {% if more %}<p>More airports match. Refine your search to narrow the list.</p>{% endif %}
+      <ul class="airport-results">
+        {% for airport in matches %}
+          <li>
+            <button name="pick" value="{{ airport.iata_code }}">
+              {{ airport.name }} ({{ airport.iata_code }}) —
+              {% if airport.municipality %}{{ airport.municipality }}, {% endif %}{{ airport.iso_country }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+      {% if more %}
+        <p>More airports match. Refine your search to narrow the list.</p>
+      {% endif %}
     {% elif searched %}
-    <p role="status">{{ 'Enter 2–100 characters.' if not 2 <= query|length <= 100 else 'No airports found. Try another name, or go back and enter the code.' }}</p>
+      {% if 2 <= query|length <= 100 %}
+        <p role="status">No airports found. Try another name, or go back and enter the code.</p>
+      {% else %}
+        <p role="status">Enter 2–100 characters.</p>
+      {% endif %}
     {% endif %}
   </form>
 </section>

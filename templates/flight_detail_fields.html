@@ -1,0 +1,71 @@
+<button type="submit" name="action" value="save" hidden>Save flight</button>
+<div class="route-summary">
+  {% for key, label in [('departure_code', 'From'), ('arrival_code', 'To')] %}
+    <p><strong>{{ label }}:</strong> {{ names.get(values[key], 'Unlisted airport') }} ({{ values[key] }})</p>
+    {% if values[key] not in names %}
+      <label>
+        <input type="checkbox" name="confirm_{{ key }}" value="{{ values[key] }}"
+               {% if request.form.get('confirm_' ~ key) == values[key] %}checked{% endif %}
+               required {{ invalid(key) }}>
+        Use {{ values[key] }} as entered
+      </label>
+      {{ feedback(key) }}
+    {% endif %}
+  {% endfor %}
+  <p><strong>Departure date:</strong> <time datetime="{{ values.departure_date }}">{{ values.departure_date }}</time></p>
+  <button class="link-button" name="action" value="route" formnovalidate>Change route or date</button>
+</div>
+<h2>Optional details</h2>
+<div class="form-grid">
+  {% for key, label, limit in [
+      ('airline', 'Airline', 100), ('flight_number', 'Flight number', 7),
+      ('aircraft', 'Aircraft type', 100), ('seat', 'Seat', 4)
+  ] %}
+    <div class="form-field">
+      <label for="{{ key }}">{{ label }}</label>
+      <input id="{{ key }}" name="{{ key }}" value="{{ values[key] }}" maxlength="{{ limit }}"
+             {% if key == 'flight_number' and key not in errors %}
+               aria-describedby="number-hint"
+             {% endif %}
+             {{ invalid(key) }}>
+      {% if key == 'flight_number' %}
+        <p class="field-hint" id="number-hint">Include the airline code, without spaces.</p>
+      {% endif %}
+      {{ feedback(key) }}
+    </div>
+  {% endfor %}
+</div>
+<div class="form-field">
+  <label for="cabin">Cabin class</label>
+  <select id="cabin" name="cabin_id"{{ invalid('cabin_id') }}>
+    <option value="">Not specified</option>
+    {% for cabin in cabins %}
+      <option value="{{ cabin.id }}"
+              {% if values.cabin_id == cabin.id|string %} selected{% endif %}>{{ cabin.name }}</option>
+    {% endfor %}
+  </select>
+  {{ feedback('cabin_id') }}
+</div>
+<fieldset class="purpose-options"{{ invalid('purpose_id') }}>
+  <legend>Journey purpose</legend>
+  <label>
+    <input type="radio" name="purpose_id" value=""
+           {% if not values.purpose_id %}checked{% endif %}>
+    Not specified
+  </label>
+  {% for purpose in purposes %}
+    <label>
+      <input type="radio" name="purpose_id" value="{{ purpose.id }}"
+             {% if values.purpose_id == purpose.id|string %} checked{% endif %}>
+      {{ purpose.name }}
+    </label>
+  {% endfor %}
+  {{ feedback('purpose_id') }}
+</fieldset>
+<div>
+  <p>Flight entries are public.</p>
+  <div class="form-actions">
+    <button class="button" name="action" value="save">Save flight</button>
+    <a href="{{ url_for('my_flights') }}">Cancel</a>
+  </div>
+</div>

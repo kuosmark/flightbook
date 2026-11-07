@@ -229,7 +229,10 @@ def flight_form(entry=None):
         if not errors:
             flight_id = flights.save(values, g.user["id"], entry["id"] if entry else None)
             return redirect(url_for("flight_detail", flight_id=flight_id))
-    return render_template("flight_form.html", values=values, errors=errors, names=names,
+    hidden_keys = flights.ROUTE_FIELDS if details else flights.DETAIL_FIELDS
+    hidden_fields = {key: values[key] for key in hidden_keys}
+    return render_template("flight_form.html", hidden_fields=hidden_fields, values=values,
+                           errors=errors, names=names,
                            details=details, editing=entry is not None, cabins=cabins,
                            purposes=purposes, today=date.today().isoformat(), picked=picked), (
                                400 if errors else 200)
