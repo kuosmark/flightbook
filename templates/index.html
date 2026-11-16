@@ -7,7 +7,9 @@
     <h1>{{ 'My flights' if mine else 'Public flights' }}</h1>
     {% if g.user %}<a class="button" href="{{ url_for('new_flight') }}">Add flight</a>{% endif %}
   </div>
-  {% include "flight_filters.html" %}
+  {% if entries or filters or draft or errors or focus %}
+    {% include "flight_filters.html" %}
+  {% endif %}
   {% if entries %}
     <p class="field-hint result-count">
       {% if pagination.total == 1 %}
@@ -38,7 +40,10 @@
   {% elif filters and not errors %}
   <p class="empty-state">No flights match these filters.</p>
   {% elif not errors %}
-  <div class="empty-state"><h2>No flights yet</h2><p>{{ 'Add your first flight.' if g.user else 'Log in to add a flight.' }}</p></div>
+  <div class="empty-state">
+    <h2>No flights yet</h2>
+    {% if not g.user %}<p>Log in to add a flight.</p>{% endif %}
+  </div>
   {% endif %}
   {% include "flight_pagination.html" %}
 </section>
