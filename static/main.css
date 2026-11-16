@@ -419,3 +419,123 @@ a.button {
 .pagination strong {
   padding: 0.5rem;
 }
+
+.flight-review-editor {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.rating-field {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.rating-field legend,
+.rating-categories summary {
+  font-weight: 600;
+}
+
+.flight-review-editor legend .field-hint,
+.flight-review-editor label .field-hint,
+.rating-categories summary .field-hint {
+  font-weight: 400;
+  margin-left: 0.5rem;
+}
+
+.rating-options {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.rating-star {
+  display: grid;
+  height: 2.75rem;
+  place-items: center;
+  position: relative;
+  width: 2.75rem;
+}
+
+.rating-star input {
+  cursor: pointer;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.rating-star span {
+  color: var(--muted);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.rating-star span::before {
+  content: "☆";
+}
+
+.rating-star:has(input:checked) span,
+.rating-star:has(~ .rating-star input:checked) span {
+  color: var(--accent);
+}
+
+.rating-star:has(input:checked) span::before,
+.rating-star:has(~ .rating-star input:checked) span::before {
+  content: "★";
+}
+
+.rating-star:has(input:focus-visible) {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.rating-clear {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.rating-categories {
+  border-block: 1px solid var(--line);
+  padding-block: 1rem;
+}
+
+.rating-categories summary {
+  cursor: pointer;
+}
+
+.rating-categories > .field-hint,
+.rating-categories .rating-field {
+  margin-top: 1rem;
+}
+
+.flight-review-editor textarea {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  color: var(--ink);
+  font: inherit;
+  padding: 0.75rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.rating-display {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.flight-review {
+  margin-block: 1.5rem;
+}
+
+.review-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

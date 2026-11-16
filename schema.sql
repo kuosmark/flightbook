@@ -43,3 +43,14 @@ CREATE TABLE IF NOT EXISTS flights (
 );
 
 CREATE INDEX IF NOT EXISTS flights_user_date ON flights (user_id, departure_date DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS flight_reviews (
+    flight_id INTEGER PRIMARY KEY REFERENCES flights ON DELETE CASCADE,
+    overall_rating INTEGER CHECK (overall_rating BETWEEN 1 AND 5),
+    seat_rating INTEGER CHECK (seat_rating BETWEEN 1 AND 5),
+    service_rating INTEGER CHECK (service_rating BETWEEN 1 AND 5),
+    food_rating INTEGER CHECK (food_rating BETWEEN 1 AND 5),
+    entertainment_rating INTEGER CHECK (entertainment_rating BETWEEN 1 AND 5),
+    wifi_rating INTEGER CHECK (wifi_rating BETWEEN 1 AND 5),
+    review TEXT CHECK (length(review) <= 5000)
+);

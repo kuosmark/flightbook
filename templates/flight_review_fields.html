@@ -1,0 +1,20 @@
+{% from "rating.html" import rating_input %}
+<section class="flight-review-editor" aria-labelledby="experience-heading">
+  <h2 id="experience-heading">Your experience</h2>
+  {{ rating_input('overall_rating', values, errors) }}
+  <details class="rating-categories" open>
+    <summary>Rate individual aspects <span class="field-hint">Optional</span></summary>
+    <p class="field-hint">Skip anything you didn’t use or that wasn’t available.</p>
+    {% for field in rating_fields[1:] %}
+      {{ rating_input(field, values, errors) }}
+    {% endfor %}
+  </details>
+  <div class="form-field">
+    <label for="review">Your review <span class="field-hint">Optional</span></label>
+    <textarea id="review" name="review" rows="4" maxlength="5000"
+              aria-describedby="review-limit{% if 'review' in errors %} error-review{% endif %}"
+              {% if 'review' in errors %}aria-invalid="true"{% endif %}>{{ values.review }}</textarea>
+    <p class="field-hint" id="review-limit">Maximum 5,000 characters.</p>
+    {{ feedback('review') }}
+  </div>
+</section>

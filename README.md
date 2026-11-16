@@ -6,10 +6,11 @@ Anyone can browse and search flight entries. Sign in to log a flight. Only you c
 ## Features
 
 - Log, edit, and delete flights with their route, departure date, and optional details like airline, flight number, and cabin class.
+- Add optional 1–5 star ratings for the overall experience, seat comfort, cabin service, food and drinks, entertainment, and Wi-Fi, plus a written review.
 - Browse recent public entries or view your own flight history by departure date.
 - Search either list by departure airport, arrival airport, airline, or flight number.
 
-**Planned:** flight ratings and reviews, comments, and traveller profiles with flight histories and statistics.
+**Planned:** comments and traveller profiles with flight histories and statistics.
 
 Built with Python 3.12, Flask, SQLite, raw SQL, Jinja, HTML, and CSS. Airport names come from a [bundled snapshot](data/README.md), so airport lookup works offline.
 

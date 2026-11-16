@@ -4,12 +4,14 @@ from datetime import date
 import re
 
 import db
+import reviews
 
 PAGE_SIZE = 20
 AIRPORT_RESULT_LIMIT = 20
 FLIGHT_NUMBER = re.compile(r"(?=[A-Z0-9]{0,1}[A-Z])[A-Z0-9]{2}[0-9]{1,4}[A-Z]?")
 ROUTE_FIELDS = ("departure_date", "departure_code", "arrival_code")
-DETAIL_FIELDS = ("airline", "flight_number", "aircraft", "seat", "cabin_id", "purpose_id")
+FLIGHT_DETAILS = ("airline", "flight_number", "aircraft", "seat", "cabin_id", "purpose_id")
+DETAIL_FIELDS = FLIGHT_DETAILS + reviews.FIELDS
 FIELDS = ROUTE_FIELDS + DETAIL_FIELDS
 
 
@@ -36,6 +38,7 @@ def airport_names(codes):
 def form_values(form):
     """Trim submitted fields and normalize codes without removing internal spaces."""
     values = {field: form.get(field, "").strip() for field in FIELDS}
+    values["review"] = values["review"].replace("\r\n", "\n").replace("\r", "\n")
     for field in ("departure_code", "arrival_code", "flight_number", "seat"):
         if values[field].isascii():
             values[field] = values[field].upper()
@@ -81,27 +84,38 @@ def detail_errors(values, cabins, purposes):
 
 def save(values, user_id, flight_id=None):
     """Insert a flight or update only an entry belonging to its owner."""
-    parameters = [values[field] or None for field in FIELDS]
-    if flight_id is None:
-        return db.execute("""INSERT INTO flights
-            (departure_date, departure_code, arrival_code, airline, flight_number,
-             aircraft, seat, cabin_id, purpose_id, user_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", parameters + [user_id])
-    db.execute("""UPDATE flights SET departure_date = ?, departure_code = ?, arrival_code = ?,
-        airline = ?, flight_number = ?, aircraft = ?, seat = ?, cabin_id = ?, purpose_id = ?
-        WHERE id = ? AND user_id = ?""", parameters + [flight_id, user_id])
+    parameters = [values[field] or None for field in ROUTE_FIELDS + FLIGHT_DETAILS]
+    connection = db.get_connection()
+    with connection:
+        if flight_id is None:
+            cursor = connection.execute("""INSERT INTO flights
+                (departure_date, departure_code, arrival_code, airline, flight_number,
+                 aircraft, seat, cabin_id, purpose_id, user_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", parameters + [user_id])
+            flight_id = cursor.lastrowid
+        else:
+            cursor = connection.execute("""UPDATE flights SET departure_date = ?,
+                departure_code = ?, arrival_code = ?, airline = ?, flight_number = ?,
+                aircraft = ?, seat = ?, cabin_id = ?, purpose_id = ?
+                WHERE id = ? AND user_id = ?""", parameters + [flight_id, user_id])
+            if not cursor.rowcount:
+                return None
+        reviews.save(connection, flight_id, values)
     return flight_id
 
 
 FLIGHT_SELECT = """SELECT f.id, f.user_id, f.departure_date, f.departure_code, f.arrival_code,
     f.airline, f.flight_number, f.aircraft, f.seat, f.cabin_id, f.purpose_id, u.username,
     d.name AS departure_name, a.name AS arrival_name,
-    c.name AS cabin_name, p.name AS purpose_name
+    c.name AS cabin_name, p.name AS purpose_name,
+    r.flight_id AS review_id, r.overall_rating, r.seat_rating, r.service_rating, r.food_rating,
+    r.entertainment_rating, r.wifi_rating, r.review
     FROM flights f JOIN users u ON u.id = f.user_id
     LEFT JOIN airports d ON d.iata_code = f.departure_code
     LEFT JOIN airports a ON a.iata_code = f.arrival_code
     LEFT JOIN categories c ON c.id = f.cabin_id
-    LEFT JOIN categories p ON p.id = f.purpose_id"""
+    LEFT JOIN categories p ON p.id = f.purpose_id
+    LEFT JOIN flight_reviews r ON r.flight_id = f.id"""
 
 
 def get_flight(flight_id):

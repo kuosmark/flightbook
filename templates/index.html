@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "rating.html" import stars %}
 {% block title %}{{ 'My flights' if mine else 'Public flights' }} · Flightbook{% endblock %}
 {% block content %}
 <section class="flight-section">
@@ -27,6 +28,7 @@
               <span>· {{ [flight.airline, flight.flight_number]|select|join(' ') }}</span>
             {% endif %}
           </p>
+          {% if flight.overall_rating %}<p>{{ stars(flight.overall_rating) }}</p>{% endif %}
           {% if not mine %}
             <p class="field-hint">Logged by {{ flight.username }}</p>
           {% endif %}
