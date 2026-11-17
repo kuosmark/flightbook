@@ -36,6 +36,8 @@ def check_return_link(test, links, route, filters, page_number):
     test.assertIn(f'id="flight-{target}"', test.client.get(back.geturl()).get_data(as_text=True))
 
 
+# Each public test method exercises a separate flight behavior.
+# pylint: disable-next=too-many-public-methods
 class FlightsTest(unittest.TestCase):
     """Exercise flight requests against an isolated database."""
 
@@ -84,6 +86,28 @@ class FlightsTest(unittest.TestCase):
             "confirm_arrival_code": values["arrival_code"]})
         self.assertEqual(response.status_code, 302)
         return response.location
+
+    def test_filters_hidden_for_empty_lists_but_available_for_searches(self):
+        """Hide unused search controls without trapping an empty or invalid search."""
+        for route in ("/", "/my-flights"):
+            for query in ("", "?filter=1"):
+                page = self.client.get(route + query)
+                self.assertIn(b"No flights yet", page.data)
+                self.assertNotIn(b"Filter flights", page.data)
+        self.sign_in(self.other)
+        self.create(airline="Finnair")
+        self.sign_in(self.owner)
+        self.assertNotIn(b"Filter flights", self.client.get("/my-flights").data)
+        self.assertIn(b"Filter flights", self.client.get("/").data)
+        self.create(airline="Finnair")
+        for route in ("/", "/my-flights"):
+            page = self.client.get(route + "?airline=Missing")
+            self.assertIn(b"No flights match these filters.", page.data)
+            self.assertIn(b"Filter flights", page.data)
+            self.assertIn("Clear", page.get_data(as_text=True))
+            invalid = self.client.get(route + "?from=INVALID")
+            self.assertEqual(invalid.status_code, 400)
+            self.assertIn(b"Filter flights", invalid.data)
 
     def test_create_edit_delete_and_public_visibility(self):
         """Round-trip all fields, preserve ownership, and confirm before deletion."""

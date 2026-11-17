@@ -12,6 +12,7 @@ class Page(HTMLParser):
         self.passwords = {}
         self.links = []
         self.select_name = None
+        self.textarea_name = None
         self.form_action = None
         self.csrf_tokens = {}
         self.feed(response.get_data(as_text=True))
@@ -22,6 +23,10 @@ class Page(HTMLParser):
             self.form_action = attrs.get("action", "")
         elif tag == "a":
             self.links.append(attrs.get("href", ""))
+        elif tag == "textarea":
+            self.textarea_name = attrs.get("name")
+            if self.textarea_name:
+                self.values[self.textarea_name] = ""
         elif tag == "select":
             self.select_name = attrs.get("name")
         elif tag == "option" and "selected" in attrs and self.select_name:
@@ -36,7 +41,13 @@ class Page(HTMLParser):
             if attrs.get("type") not in ("radio", "checkbox") or "checked" in attrs:
                 self.values[name] = value
 
+    def handle_data(self, data):
+        if self.textarea_name:
+            self.values[self.textarea_name] += data
+
     def handle_endtag(self, tag):
+        if tag == "textarea":
+            self.textarea_name = None
         if tag == "select":
             self.select_name = None
         elif tag == "form":

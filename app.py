@@ -13,6 +13,7 @@ import db
 from session_key import load_key
 import users
 import flights
+import reviews
 
 app = Flask(__name__)
 app.config.update(
@@ -22,7 +23,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("FLIGHTBOOK_COOKIE_SECURE") == "1",
-    MAX_CONTENT_LENGTH=16 * 1024,
+    MAX_CONTENT_LENGTH=128 * 1024,
 )
 app.teardown_appcontext(db.close_connection)
 
@@ -294,6 +295,7 @@ def flight_detail(flight_id):
     back_url = url_for("my_flights" if mine else "index", page=page if page > 1 else None,
                        _anchor=f"flight-{flight_id}", **filters)
     return render_template("flight.html", flight=find_flight(flight_id),
+                           rating_fields=reviews.RATING_FIELDS,
                            mine=mine, back_url=back_url)
 
 
@@ -322,7 +324,7 @@ def flight_form(entry=None):
     cabins = flights.choices("cabin") if details else []
     purposes = flights.choices("purpose") if details else []
     if details and action == "save":
-        errors = flights.detail_errors(values, cabins, purposes)
+        errors = flights.detail_errors(values, cabins, purposes) | reviews.errors(values)
         for field in ("departure_code", "arrival_code"):
             if values[field] not in names and request.form.get("confirm_" + field) != values[field]:
                 errors[field] = "Confirm the unlisted code or change the route."
@@ -334,7 +336,8 @@ def flight_form(entry=None):
     return render_template("flight_form.html", hidden_fields=hidden_fields, values=values,
                            errors=errors, names=names,
                            details=details, editing=entry is not None, cabins=cabins,
-                           purposes=purposes, today=date.today().isoformat(), picked=picked), (
+                           purposes=purposes, rating_fields=reviews.RATING_FIELDS,
+                           today=date.today().isoformat(), picked=picked), (
                                400 if errors else 200)
 
 
