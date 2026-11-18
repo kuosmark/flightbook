@@ -43,6 +43,7 @@ A social flight diary developed for the University of Helsinki's *Tietokannat ja
 - Before requesting merge approval, review the changes against the [course technical checklist](https://hy-tikawe.github.io/materiaali/lista/).
 - Require the `Quality checks` CI job to pass for the latest revision before merging.
 - Squash-merge approved pull requests and delete merged branches.
+- Avoid creating planning or review documents unless explicitly requested or needed to maintain the project.
 - Keep the README accurate, including setup instructions and application features.
 - Record required Pylint results and performance measurements.
 - Avoid unnecessary infrastructure or deployment workflows.
