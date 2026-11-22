@@ -143,12 +143,20 @@ class FlightsTest(unittest.TestCase):
 
     def test_other_users_and_guests_cannot_modify_entries(self):
         """Reject direct URLs and forged POSTs, not just hide controls."""
-        path = self.create()
+        path = self.create(review="Original review", overall_rating="4")
+        flight_id = int(path.rsplit("/", 1)[1])
+        with app.app_context():
+            original = dict(flights.get_flight(flight_id))
+        forged = self.values | {"action": "save", "airline": "Forged airline",
+                                "review": "Forged review", "overall_rating": "1",
+                                "user_id": str(self.other)}
         for user_id, status in ((self.other, 403), (None, 401)):
             self.sign_in(user_id)
             for action in ("edit", "delete"):
                 self.assertEqual(self.client.get(path + "/" + action).status_code, status)
-                self.assertEqual(self.post(path + "/" + action, self.values).status_code, status)
+                self.assertEqual(self.post(path + "/" + action, forged).status_code, status)
+                with app.app_context():
+                    self.assertEqual(dict(flights.get_flight(flight_id)), original)
         self.assertEqual(self.post("/flights/new", self.values).status_code, 401)
         self.assertEqual(self.client.get("/my-flights").status_code, 401)
         self.assertEqual(self.client.get(path).status_code, 200)
@@ -441,3 +449,33 @@ class FlightsTest(unittest.TestCase):
         """Missing entries have consistent status on view, edit, and delete."""
         for suffix in ("", "/edit", "/delete"):
             self.assertEqual(self.client.get("/flights/999" + suffix).status_code, 404)
+
+    def test_out_of_range_flight_ids_return_not_found(self):
+        """Invalid IDs never overflow SQLite on public or protected routes."""
+        for flight_id in (0, 9223372036854775808, 10 ** 100):
+            for suffix in ("", "/edit", "/delete"):
+                with self.subTest(flight_id=flight_id, suffix=suffix):
+                    path = f"/flights/{flight_id}{suffix}"
+                    self.assertEqual(self.client.get(path).status_code, 404)
+                    if suffix:
+                        self.assertEqual(self.post(path, self.values).status_code, 404)
+
+    def test_protected_flight_routes_require_login_before_lookup(self):
+        """Guests receive 401 even for missing or oversized flight IDs."""
+        self.sign_in(None)
+        for flight_id in (999, 9223372036854775808):
+            for suffix in ("/edit", "/delete"):
+                with self.subTest(flight_id=flight_id, suffix=suffix):
+                    path = f"/flights/{flight_id}{suffix}"
+                    self.assertEqual(self.client.get(path).status_code, 401)
+                    self.assertEqual(self.post(path, self.values).status_code, 401)
+
+    def test_largest_sqlite_flight_id_is_accessible(self):
+        """The upper valid boundary remains viewable and editable by its owner."""
+        path = self.create()
+        flight_id = int(path.rsplit("/", 1)[1])
+        maximum = 9223372036854775807
+        with app.app_context():
+            db.execute("UPDATE flights SET id = ? WHERE id = ?", [maximum, flight_id])
+        for suffix in ("", "/edit", "/delete"):
+            self.assertEqual(self.client.get(f"/flights/{maximum}{suffix}").status_code, 200)

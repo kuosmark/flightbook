@@ -15,6 +15,9 @@ import users
 import flights
 import reviews
 
+# SQLite stores integers as signed 64-bit values.
+SQLITE_MAX_INTEGER = 2**63 - 1
+
 app = Flask(__name__)
 app.config.update(
     SECRET_KEY=load_key(app.instance_path),
@@ -269,13 +272,15 @@ def require_login():
 
 def find_flight(flight_id, owner=False):
     """Look up a flight and optionally require its owner."""
+    if owner:
+        require_login()
+    if not 1 <= flight_id <= SQLITE_MAX_INTEGER:
+        abort(404)
     entry = flights.get_flight(flight_id)
     if entry is None:
         abort(404)
-    if owner:
-        require_login()
-        if entry["user_id"] != g.user["id"]:
-            abort(403)
+    if owner and entry["user_id"] != g.user["id"]:
+        abort(403)
     return entry
 
 
