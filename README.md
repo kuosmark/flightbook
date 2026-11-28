@@ -12,7 +12,8 @@ Anyone can browse and search flight entries. Sign in to log a flight. Only you c
 
 **Planned:** comments and traveller profiles with flight histories and statistics.
 
-Built with Python 3.12, Flask, SQLite, raw SQL, Jinja, HTML, and CSS. Airport names come from a [bundled snapshot](data/README.md), so airport lookup works offline.
+Built with Python 3.12, Flask, SQLite, raw SQL, Jinja, HTML, and CSS. Airport names come from a [bundled snapshot](data/README.md), so airport lookup works offline. Flight entries must use airport codes found in this database.
+Existing entries with unlisted codes remain readable, but their airports must be corrected before edits can be saved.
 
 ## Run locally
 
