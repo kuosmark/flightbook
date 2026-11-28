@@ -81,9 +81,7 @@ class FlightsTest(unittest.TestCase):
         self.assertEqual(preview.status_code, 200)
         self.assertIn(b"Change route or date", preview.data)
         response = self.client.post("/flights/new", data=values | {
-            "action": "save", "csrf_token": csrf_token(preview),
-            "confirm_departure_code": values["departure_code"],
-            "confirm_arrival_code": values["arrival_code"]})
+            "action": "save", "csrf_token": csrf_token(preview)})
         self.assertEqual(response.status_code, 302)
         return response.location
 
@@ -211,15 +209,13 @@ class FlightsTest(unittest.TestCase):
                     count = db.query("SELECT COUNT(*) AS count FROM flights")[0]["count"]
                     self.assertEqual(count, 1)
 
-    def test_unknown_codes_and_escaped_text(self):
-        """Unknown valid codes survive lookup joins and user text is escaped."""
-        path = self.create(departure_code="ZZZ", airline="<script>alert(1)</script>",
+    def test_escaped_text(self):
+        """Free-text details are escaped when displayed."""
+        path = self.create(airline="<script>alert(1)</script>",
                            flight_number="U2123A", seat="999Z")
         page = self.client.get(path).get_data(as_text=True)
-        self.assertIn("ZZZ", page)
         self.assertIn("&lt;script&gt;", page)
         self.assertNotIn("<script>", page)
-        self.assertIn("ZZZ", self.client.get("/").get_data(as_text=True))
 
     def test_import_is_repeatable_and_preserves_flights(self):
         """Real snapshot imports safely without overwriting accounts or flights."""
@@ -295,19 +291,42 @@ class FlightsTest(unittest.TestCase):
         with app.app_context():
             self.assertEqual(db.query("SELECT COUNT(*) AS n FROM flights")[0]["n"], 0)
 
-    def test_unlisted_airport_needs_confirmation_for_that_code(self):
-        """Do not save an unlisted airport using an absent or stale confirmation."""
-        values = self.values | {"departure_code": "ZZZ"}
-        preview = self.post("/flights/new", values | {"action": "continue"})
-        self.assertIn(b"Use ZZZ as entered", preview.data)
-        for confirmation in ("", "XXX"):
-            response = self.post("/flights/new", values | {
-                "action": "save", "confirm_departure_code": confirmation})
-            self.assertEqual(response.status_code, 400)
+    def test_unknown_airports_rejected_on_create_and_edit(self):
+        """Unknown codes cannot bypass route validation or alter stored flights."""
+        path = self.create(review="Keep this review", overall_rating="4")
+        flight_id = int(path.rsplit("/", 1)[1])
         with app.app_context():
-            self.assertEqual(db.query("SELECT COUNT(*) AS n FROM flights")[0]["n"], 0)
-        self.assertEqual(self.post("/flights/new", values | {
-            "action": "save", "confirm_departure_code": "ZZZ"}).status_code, 302)
+            original = dict(flights.get_flight(flight_id))
+        for target in ("/flights/new", path + "/edit"):
+            for field in ("departure_code", "arrival_code"):
+                for action in ("continue", "save"):
+                    with self.subTest(target=target, field=field, action=action):
+                        response = self.post(target, self.values | {
+                            field: "ZZZ", "action": action, "confirm_" + field: "ZZZ",
+                            "review": "Unsaved draft"})
+                        self.assertEqual(response.status_code, 400)
+                        self.assertIn(b"Choose an airport from our database", response.data)
+                        self.assertNotIn(b"Use ZZZ as entered", response.data)
+                        self.assertEqual(Page(response).values[field], "ZZZ")
+                        self.assertEqual(Page(response).values["review"], "Unsaved draft")
+                        with app.app_context():
+                            self.assertEqual(dict(flights.get_flight(flight_id)), original)
+                            self.assertEqual(len(db.query("SELECT id FROM flights")), 1)
+
+    def test_legacy_unknown_airport_can_be_corrected(self):
+        """Old entries stay readable, but editing requires a listed airport."""
+        with app.app_context():
+            flight_id = flights.save(self.values | {"departure_code": "ZZZ"}, self.owner)
+        path = f"/flights/{flight_id}"
+        self.assertEqual(self.client.get(path).status_code, 200)
+        edit = self.client.get(path + "/edit")
+        self.assertEqual(edit.status_code, 400)
+        self.assertIn(b"Choose an airport from our database", edit.data)
+        corrected = self.post(path + "/edit", self.values | {
+            "departure_code": " hel ", "arrival_code": "ams", "action": "save"})
+        self.assertEqual(corrected.status_code, 302)
+        with app.app_context():
+            self.assertEqual(flights.get_flight(flight_id)["departure_code"], "HEL")
 
     def test_search_matches_fields_and_combines_them(self):
         """Routes have direction, numbers match in full, and airline text is literal."""

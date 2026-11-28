@@ -46,11 +46,11 @@ def form_values(form):
 
 
 def airport_code_error(code):
-    """Validate a supplied code after normalization, including unlisted airports."""
+    """Validate the format of a normalized airport code."""
     return None if re.fullmatch(r"[A-Z]{3}", code) else "Enter a three-letter airport code."
 
 
-def route_errors(values):
+def route_errors(values, names):
     """Identify the individual route fields that need correcting."""
     errors = {}
     try:
@@ -63,6 +63,8 @@ def route_errors(values):
     for field in ("departure_code", "arrival_code"):
         if error := airport_code_error(values[field]):
             errors[field] = error
+        elif values[field] not in names:
+            errors[field] = "Choose an airport from our database. Use Find airport to search."
     return errors
 
 

@@ -322,17 +322,14 @@ def flight_form(entry=None):
                                   and request.method == "GET" else "route")
     if action not in ("route", "continue", "details", "save"):
         abort(400)
-    errors = flights.route_errors(values) if action != "route" else {}
-    details = action != "route" and not errors
     names = (flights.airport_names((values["departure_code"], values["arrival_code"]))
-             if details else {})
+             if action != "route" else {})
+    errors = flights.route_errors(values, names) if action != "route" else {}
+    details = action != "route" and not errors
     cabins = flights.choices("cabin") if details else []
     purposes = flights.choices("purpose") if details else []
     if details and action == "save":
         errors = flights.detail_errors(values, cabins, purposes) | reviews.errors(values)
-        for field in ("departure_code", "arrival_code"):
-            if values[field] not in names and request.form.get("confirm_" + field) != values[field]:
-                errors[field] = "Confirm the unlisted code or change the route."
         if not errors:
             flight_id = flights.save(values, g.user["id"], entry["id"] if entry else None)
             return redirect(url_for("flight_detail", flight_id=flight_id))
