@@ -170,7 +170,7 @@ def return_to_search(previous, draft, picked):
     filters, _ = flights.search_filters(previous)
     if previous.get("page", "1") != "1":
         filters["page"] = previous["page"]
-    target = url_for(request.endpoint, **(filters or {"filter": "1"}))
+    target = flight_list_url(**(filters or {"filter": "1"}))
     field = request.args["find"]
     # A normal draft is at most 113 characters; do not put oversized input in a cookie.
     if sum(map(len, draft.values())) > 256:
@@ -194,27 +194,37 @@ def applied_filter_labels(filters):
     return labels
 
 
-def flight_listing(user_id=None):
-    """Render either recent public entries or the current user's flight history."""
+@app.template_global()
+def flight_list_url(**params):
+    """Keep route parameters when linking within a public or personal flight list."""
+    return url_for(request.endpoint, **(request.view_args or {}), **params)
+
+
+def find_filter_airport(draft):
+    """Keep the applied search separate while choosing an airport for its draft."""
+    previous = {key.removeprefix("applied_"): value for key, value in request.args.items()
+                if key.startswith("applied_")}
+    filters, _ = flights.search_filters(previous)
+    context = {"applied_" + key: value for key, value in filters.items()}
+    context["applied_page"] = previous.get("page", "1")
+    picker, picked = airport_picker(
+        request.args, draft, {"from": "departure", "to": "arrival"}, context)
+    if picker:
+        return picker
+    return return_to_search(previous, draft, picked)
+
+
+def flight_listing(user_id=None, profile=None):
+    """Render a public feed, personal diary, or traveller's flight history."""
     draft, errors = flights.search_filters(request.args)
     filters = draft
     focus = None
     picked = {}
     if "find" in request.args:
-        # The finder carries the last submitted search separately from unfinished edits.
-        previous = {key.removeprefix("applied_"): value for key, value in request.args.items()
-                    if key.startswith("applied_")}
-        filters, errors = flights.search_filters(previous)
-        context = {"applied_" + key: value for key, value in filters.items()}
-        context["applied_page"] = previous.get("page", "1")
-        picker, picked = airport_picker(
-            request.args, draft, {"from": "departure", "to": "arrival"}, context)
-        if picker:
-            return picker
-        return return_to_search(previous, draft, picked)
+        return find_filter_airport(draft)
     if "applied_page" in request.args:
         # Keep submitted searches bookmarkable without the finder's hidden fields.
-        return redirect(url_for(request.endpoint, **(draft or {"filter": "1"})))
+        return redirect(flight_list_url(**(draft or {"filter": "1"})))
     page_value = request.args.get("page", "1")
     pending = session.get("airport_return")
     if pending and pending["target"] == request.full_path.rstrip("?"):
@@ -230,20 +240,29 @@ def flight_listing(user_id=None):
     entries, total = ([], 0) if errors else flights.list_flights(page, filters, user_id)
     if page > 1 and not entries and not errors:
         abort(404)
-    return render_template("index.html", entries=entries, page=page,
+    statistics = {}
+    if profile is not None:
+        year = date.today().year
+        statistics = {"summary": flights.profile_statistics(user_id, year),
+                      "airports": flights.airport_count(user_id),
+                      "top_airports": flights.top_airports(user_id), "year": year}
+    return render_template("profile.html" if profile is not None else "index.html",
+                           entries=entries, page=page, profile=profile, statistics=statistics,
                            pagination=flight_pagination(page, total),
-                           return_params=list_return_params(page, filters, user_id),
-                           mine=user_id is not None,
+                           return_params=list_return_params(page, filters, user_id, profile),
+                           mine=user_id is not None and profile is None,
                            filters=filters, draft=draft, errors=errors,
                            filters_open=filters_open, picked=picked, focus=focus,
                            applied_filters=applied_filter_labels(filters) if not errors else []), (
                                400 if errors else 200)
 
 
-def list_return_params(page, filters, user_id):
+def list_return_params(page, filters, user_id, profile=None):
     """Carry the list scope, page and filters when a traveller opens an entry."""
     params = {}
-    if user_id is not None:
+    if profile is not None:
+        params["traveller"] = profile["username"]
+    elif user_id is not None:
         params["scope"] = "mine"
     if page > 1:
         params["page"] = page
@@ -291,17 +310,33 @@ def my_flights():
     return flight_listing(g.user["id"])
 
 
+@app.get("/travellers/<username>")
+def traveller_profile(username):
+    """Show a traveller's public diary and statistics."""
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", username):
+        abort(404)
+    profile = users.find_by_username(username)
+    if profile is None:
+        abort(404)
+    return flight_listing(profile["id"], profile)
+
+
 @app.get("/flights/<int:flight_id>")
 def flight_detail(flight_id):
-    """Show a flight to any visitor."""
+    """Show a flight to any visitor, preserving the originating history."""
+    entry = find_flight(flight_id)
     mine = request.args.get("scope") == "mine"
     filters, _ = flights.search_filters(request.args)
     page = request.args.get("page", 1, type=int)
-    back_url = url_for("my_flights" if mine else "index", page=page if page > 1 else None,
-                       _anchor=f"flight-{flight_id}", **filters)
-    return render_template("flight.html", flight=find_flight(flight_id),
-                           rating_fields=reviews.RATING_FIELDS,
-                           mine=mine, back_url=back_url)
+    params = filters | {"page": page if page > 1 else None, "_anchor": f"flight-{flight_id}"}
+    if request.args.get("traveller", "").casefold() == entry["username"].casefold():
+        back_url = url_for("traveller_profile", username=entry["username"], **params)
+        back_label = entry["username"] + "’s flight history"
+    else:
+        back_url = url_for("my_flights" if mine else "index", **params)
+        back_label = "My flights" if mine else "Public flights"
+    return render_template("flight.html", flight=entry, rating_fields=reviews.RATING_FIELDS,
+                           back_label=back_label, back_url=back_url)
 
 
 def flight_form(entry=None):

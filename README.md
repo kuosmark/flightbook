@@ -9,8 +9,15 @@ Anyone can browse and search flight entries. Sign in to log a flight. Only you c
 - Add optional 1–5 star ratings for the overall experience, seat comfort, cabin service, food and drinks, entertainment, and Wi-Fi, plus a written review of up to 5,000 characters.
 - Browse recent public entries or view your own flight history by departure date.
 - Search either list by departure airport, arrival airport, airline, or flight number.
+- Browse public traveller profiles with searchable flight histories, ordered by departure date.
+- See each traveller's total flights, distinct airports, flights this year, three most-used airports,
+  and average overall rating with the number of rated flights.
 
-**Planned:** comments and traveller profiles with flight histories and statistics.
+Profile statistics cover the full diary regardless of search filters. Airports count once per flight,
+including departures and arrivals; ties in the top three are ordered by airport code. Average ratings
+exclude unrated flights. The current year follows the server's calendar date.
+
+**Planned:** comments on flight entries.
 
 Built with Python 3.12, Flask, SQLite, raw SQL, Jinja, HTML, and CSS. Airport names come from a [bundled snapshot](data/README.md), so airport lookup works offline. Flight entries must use airport codes found in this database.
 Existing entries with unlisted codes remain readable, but their airports must be corrected before edits can be saved.

@@ -67,7 +67,7 @@ class AccountsTest(unittest.TestCase):
             self.assertEqual(browser_session["user_id"], account["id"])
             self.assertTrue(browser_session.permanent)
         page = self.client.get("/").get_data(as_text=True)
-        self.assertIn('class="account-name">Markus</span>', page)
+        self.assertIn('/travellers/Markus', page)
         self.assertIn("Log out", page)
 
     def test_case_insensitive_uniqueness_is_enforced_by_database(self):

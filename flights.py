@@ -189,3 +189,34 @@ def list_flights(page, filters, user_id=None):
 def delete(flight_id, user_id):
     """Delete only the owner's entry."""
     db.execute("DELETE FROM flights WHERE id = ? AND user_id = ?", [flight_id, user_id])
+
+
+def profile_statistics(user_id, year):
+    """Aggregate the traveller's full diary, excluding unrated flights from the mean."""
+    return db.query("""SELECT COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN f.departure_date >= ? AND f.departure_date < ?
+            THEN 1 ELSE 0 END), 0) AS this_year,
+        AVG(r.overall_rating) AS average_rating, COUNT(r.overall_rating) AS rated_flights
+        FROM flights f LEFT JOIN flight_reviews r ON r.flight_id = f.id
+        WHERE f.user_id = ?""", [f"{year}-01-01", f"{year + 1}-01-01", user_id])[0]
+
+
+# UNION counts an airport once per flight, even when departure and arrival are the same.
+AIRPORT_VISITS = """WITH visits AS (
+    SELECT id, departure_code AS code FROM flights WHERE user_id = ?
+    UNION
+    SELECT id, arrival_code AS code FROM flights WHERE user_id = ?
+) """
+
+
+def airport_count(user_id):
+    """Count distinct departure and arrival codes across the traveller's diary."""
+    return db.query(AIRPORT_VISITS + "SELECT COUNT(DISTINCT code) AS total FROM visits",
+                    [user_id, user_id])[0]["total"]
+
+
+def top_airports(user_id):
+    """Return the three most-used airports, breaking equal counts by airport code."""
+    return db.query(AIRPORT_VISITS + """SELECT v.code, a.name, COUNT(*) AS total
+        FROM visits v LEFT JOIN airports a ON a.iata_code = v.code
+        GROUP BY v.code, a.name ORDER BY total DESC, v.code LIMIT 3""", [user_id, user_id])
