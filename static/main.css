@@ -572,7 +572,7 @@ a.button {
 
 .profile-summaries {
   display: grid;
-  gap: 2rem;
+  gap: 2rem 3rem;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   margin-block: 2rem 3rem;
 }
