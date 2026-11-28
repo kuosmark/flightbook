@@ -1,0 +1,40 @@
+{% from "rating.html" import stars %}
+{% if entries or filters or draft or errors or focus %}
+  {% include "flight_filters.html" %}
+{% endif %}
+{% if entries %}
+  <p class="field-hint result-count">
+    {% if pagination.total == 1 %}
+      1 flight
+    {% else %}
+      {{ pagination.start }}–{{ pagination.end }} of {{ pagination.total }} flights
+    {% endif %}
+  </p>
+  <ul class="flight-list">
+    {% for flight in entries %}
+      <li>
+        <a id="flight-{{ flight.id }}" class="flight-route"
+           href="{{ url_for('flight_detail', flight_id=flight.id, **return_params) }}">{{ flight.departure_code }} → {{ flight.arrival_code }}</a>
+        <p>{{ flight.departure_name or flight.departure_code }} → {{ flight.arrival_name or flight.arrival_code }}</p>
+        <p class="flight-meta">
+          <time datetime="{{ flight.departure_date }}">{{ flight.departure_date|flight_date }}</time>
+          {% if flight.airline or flight.flight_number %}
+            <span>· {{ [flight.airline, flight.flight_number]|select|join(' ') }}</span>
+          {% endif %}
+        </p>
+        {% if flight.overall_rating %}<p>{{ stars(flight.overall_rating) }}</p>{% endif %}
+        {% if not mine and not profile %}
+          <p class="field-hint">Logged by <a href="{{ url_for('traveller_profile', username=flight.username) }}">{{ flight.username }}</a></p>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% elif filters and not errors %}
+<p class="empty-state">No flights match these filters.</p>
+{% elif not errors %}
+<div class="empty-state">
+  <h2>No flights yet</h2>
+  {% if not g.user and not profile %}<p>Log in to add a flight.</p>{% endif %}
+</div>
+{% endif %}
+{% include "flight_pagination.html" %}

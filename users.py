@@ -25,3 +25,9 @@ def get_user(user_id):
     """Find an account by its stable ID."""
     rows = db.query("SELECT id, username FROM users WHERE id = ?", (user_id,))
     return rows[0] if rows else None
+
+
+def find_by_username(username):
+    """Find a public account without exposing authentication data."""
+    rows = db.query("SELECT id, username FROM users WHERE username = ?", [username])
+    return rows[0] if rows else None

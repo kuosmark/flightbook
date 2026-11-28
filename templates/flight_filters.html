@@ -3,7 +3,7 @@
 <details class="flight-filters"{% if filters_open %} open{% endif %}>
   <summary>Filter flights</summary>
   <form class="flight-search form-grid" role="search" aria-label="Search flights"
-        method="get" action="{{ url_for(request.endpoint) }}">
+        method="get" action="{{ flight_list_url() }}">
     <input type="hidden" name="applied_page" value="{{ page }}">
     {% for key, value in filters.items() if not errors %}
       <input type="hidden" name="applied_{{ key }}" value="{{ value }}">
@@ -32,7 +32,7 @@
     <div class="form-actions">
       <button class="button" type="submit">Search</button>
       {% if filters or draft %}
-        <a href="{{ url_for(request.endpoint) }}">Clear</a>
+        <a href="{{ flight_list_url() }}">Clear</a>
       {% endif %}
     </div>
   </form>
@@ -45,5 +45,5 @@
     {% endfor %}
   </p>
 {% elif draft and not errors %}
-  <p class="applied-route">Showing all {{ 'your' if mine else 'public' }} flights.</p>
+  <p class="applied-route">Showing all {% if profile %}{{ profile.username }}’s{% else %}{{ 'your' if mine else 'public' }}{% endif %} flights.</p>
 {% endif %}

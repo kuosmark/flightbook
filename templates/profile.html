@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.username }} · Flightbook{% endblock %}
+{% block content %}
+<section class="flight-section traveller-profile" aria-labelledby="profile-heading">
+  <div class="section-heading">
+    <div>
+      <p class="field-hint">Traveller profile</p>
+      <h1 id="profile-heading">{{ profile.username }}</h1>
+    </div>
+    {% if g.user and g.user.id == profile.id %}
+      <a class="button" href="{{ url_for('new_flight') }}">Add flight</a>
+    {% endif %}
+  </div>
+  <dl class="profile-stats" aria-label="Flight statistics">
+    <div>
+      <dt>Total flights</dt>
+      <dd>{{ statistics.total }}</dd>
+    </div>
+    <div>
+      <dt>Distinct airports</dt>
+      <dd>{{ statistics.airports }}</dd>
+    </div>
+    <div>
+      <dt>Flights this year <span class="field-hint">({{ statistics.year }})</span></dt>
+      <dd>{{ statistics.this_year }}</dd>
+    </div>
+  </dl>
+  <div class="profile-summaries">
+    <section aria-labelledby="airports-heading">
+      <h2 id="airports-heading">Most-used airports</h2>
+      {% if statistics.top_airports %}
+        <ol class="profile-airports">
+          {% for airport in statistics.top_airports %}
+            <li>
+              <span><strong>{{ airport.code }}</strong> · {{ airport.name or 'Unlisted airport' }}</span>
+              <span class="field-hint">{{ airport.total }} {{ 'flight' if airport.total == 1 else 'flights' }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="field-hint profile-summary-note">No airports yet.</p>
+      {% endif %}
+    </section>
+    <section aria-labelledby="rating-heading">
+      <h2 id="rating-heading">Average overall rating</h2>
+      {% if statistics.ratings.rated_flights %}
+        <p class="profile-average">{{ '%.1f'|format(statistics.ratings.average_rating) }} / 5</p>
+        <p class="field-hint">From {{ statistics.ratings.rated_flights }} {{ 'rated flight' if statistics.ratings.rated_flights == 1 else 'rated flights' }}</p>
+      {% else %}
+        <p class="profile-average">Not rated</p>
+      {% endif %}
+    </section>
+  </div>
+  <section aria-labelledby="history-heading">
+    <h2 id="history-heading">Flight history</h2>
+    {% include "flight_list.html" %}
+  </section>
+</section>
+{% endblock %}

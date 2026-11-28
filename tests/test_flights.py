@@ -125,7 +125,7 @@ class FlightsTest(unittest.TestCase):
             listing = self.client.get(route)
             self.assertIn(b">15 Jan 2025</time>", listing.data)
             self.assertIn(b"Finnair AY123", listing.data)
-            self.assertEqual(b"Logged by Traveller" in listing.data, public)
+            self.assertEqual(b"Logged by " in listing.data, public)
         guest = app.test_client()
         self.assertEqual(guest.get(path).status_code, 200)
         self.assertIn(path, guest.get("/").get_data(as_text=True))

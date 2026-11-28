@@ -14,7 +14,7 @@
       <nav class="account-nav" aria-label="Account">
         {% if g.user %}
         <a href="{{ url_for('my_flights') }}">My flights</a>
-        <span class="account-name">{{ g.user.username }}</span>
+        <a class="account-name" href="{{ url_for('traveller_profile', username=g.user.username) }}">{{ g.user.username }}</a>
         <form action="{{ url_for('logout') }}" method="post">
           <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
           <button class="link-button" type="submit">Log out</button>
