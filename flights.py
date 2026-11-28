@@ -64,7 +64,7 @@ def route_errors(values, names):
         if error := airport_code_error(values[field]):
             errors[field] = error
         elif values[field] not in names:
-            errors[field] = "Choose an airport from our database. Use Find airport to search."
+            errors[field] = "Airport not found. Use Find airport to search."
     return errors
 
 
