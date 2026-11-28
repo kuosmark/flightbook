@@ -243,7 +243,9 @@ def flight_listing(user_id=None, profile=None):
     statistics = {}
     if profile is not None:
         year = date.today().year
-        statistics = {"summary": flights.profile_statistics(user_id, year),
+        statistics = {"total": flights.count_flights({}, user_id),
+                      "this_year": flights.flights_in_year(user_id, year),
+                      "ratings": flights.rating_statistics(user_id),
                       "airports": flights.airport_count(user_id),
                       "top_airports": flights.top_airports(user_id), "year": year}
     return render_template("profile.html" if profile is not None else "index.html",

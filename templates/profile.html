@@ -14,7 +14,7 @@
   <dl class="profile-stats" aria-label="Flight statistics">
     <div>
       <dt>Total flights</dt>
-      <dd>{{ statistics.summary.total }}</dd>
+      <dd>{{ statistics.total }}</dd>
     </div>
     <div>
       <dt>Distinct airports</dt>
@@ -22,7 +22,7 @@
     </div>
     <div>
       <dt>Flights this year <span class="field-hint">({{ statistics.year }})</span></dt>
-      <dd>{{ statistics.summary.this_year }}</dd>
+      <dd>{{ statistics.this_year }}</dd>
     </div>
   </dl>
   <div class="profile-summaries">
@@ -43,9 +43,9 @@
     </section>
     <section aria-labelledby="rating-heading">
       <h2 id="rating-heading">Average overall rating</h2>
-      {% if statistics.summary.rated_flights %}
-        <p class="profile-average">{{ '%.1f'|format(statistics.summary.average_rating) }} / 5</p>
-        <p class="field-hint">From {{ statistics.summary.rated_flights }} {{ 'rated flight' if statistics.summary.rated_flights == 1 else 'rated flights' }}</p>
+      {% if statistics.ratings.rated_flights %}
+        <p class="profile-average">{{ '%.1f'|format(statistics.ratings.average_rating) }} / 5</p>
+        <p class="field-hint">From {{ statistics.ratings.rated_flights }} {{ 'rated flight' if statistics.ratings.rated_flights == 1 else 'rated flights' }}</p>
       {% else %}
         <p class="profile-average">Not rated</p>
       {% endif %}

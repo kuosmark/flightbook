@@ -61,9 +61,10 @@ class ProfilesTest(unittest.TestCase):
         self.add(departure_code="LHR", arrival_code="CDG")
         self.add(self.other, overall_rating="1", departure_code="JFK")
         with app.app_context():
-            summary = flights.profile_statistics(self.owner, year)
-            self.assertEqual(dict(summary), {"total": 4, "this_year": 2,
-                                            "average_rating": 4.0, "rated_flights": 2})
+            summary = flights.rating_statistics(self.owner)
+            self.assertEqual(flights.count_flights({}, self.owner), 4)
+            self.assertEqual(flights.flights_in_year(self.owner, year), 2)
+            self.assertEqual(dict(summary), {"average_rating": 4.0, "rated_flights": 2})
             self.assertEqual(flights.airport_count(self.owner), 4)
             airports = flights.top_airports(self.owner)
         self.assertEqual([(row["code"], row["total"]) for row in airports],
@@ -75,18 +76,32 @@ class ProfilesTest(unittest.TestCase):
         self.assertIn(b"4.0 / 5", filtered.data)
         self.assertIn(b"2 rated flights", filtered.data)
 
+    def test_yearly_count_boundaries_and_empty_statistics(self):
+        """Include both ends of the selected year, excluding adjacent years and users."""
+        with app.app_context():
+            self.assertEqual(flights.count_flights({}, self.owner), 0)
+            self.assertEqual(flights.flights_in_year(self.owner, 2026), 0)
+            self.assertEqual(dict(flights.rating_statistics(self.owner)),
+                             {"average_rating": None, "rated_flights": 0})
+        for departure_date in ("2025-12-31", "2026-01-01", "2026-12-31", "2027-01-01"):
+            self.add(departure_date=departure_date)
+        self.add(self.other, departure_date="2026-06-01")
+        with app.app_context():
+            self.assertEqual(flights.count_flights({}, self.owner), 4)
+            self.assertEqual(flights.flights_in_year(self.owner, 2026), 2)
+
     def test_statistics_update_after_edit_and_delete(self):
         """Profile totals reflect the saved diary rather than cached counters."""
         flight_id = self.add(overall_rating="5")
         with app.app_context():
             flights.save(self.values | {"arrival_code": "LHR", "overall_rating": "2"},
                          self.owner, flight_id)
-            self.assertEqual(flights.profile_statistics(self.owner, date.today().year)
+            self.assertEqual(flights.rating_statistics(self.owner)
                              ["average_rating"], 2.0)
             self.assertEqual({row["code"] for row in flights.top_airports(self.owner)},
                              {"HEL", "LHR"})
             flights.delete(flight_id, self.owner)
-            self.assertEqual(flights.profile_statistics(self.owner, date.today().year)["total"], 0)
+            self.assertEqual(flights.count_flights({}, self.owner), 0)
             self.assertEqual(flights.airport_count(self.owner), 0)
             self.assertEqual(flights.top_airports(self.owner), [])
 
@@ -101,7 +116,7 @@ class ProfilesTest(unittest.TestCase):
         self.add()
         self.assertIn(b"Not rated", self.client.get(self.path).data)
         with app.app_context():
-            summary = flights.profile_statistics(self.owner, date.today().year)
+            summary = flights.rating_statistics(self.owner)
             self.assertIsNone(summary["average_rating"])
             self.assertEqual(summary["rated_flights"], 0)
 

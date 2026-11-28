@@ -191,14 +191,19 @@ def delete(flight_id, user_id):
     db.execute("DELETE FROM flights WHERE id = ? AND user_id = ?", [flight_id, user_id])
 
 
-def profile_statistics(user_id, year):
-    """Aggregate the traveller's full diary, excluding unrated flights from the mean."""
-    return db.query("""SELECT COUNT(*) AS total,
-        COALESCE(SUM(CASE WHEN f.departure_date >= ? AND f.departure_date < ?
-            THEN 1 ELSE 0 END), 0) AS this_year,
-        AVG(r.overall_rating) AS average_rating, COUNT(r.overall_rating) AS rated_flights
-        FROM flights f LEFT JOIN flight_reviews r ON r.flight_id = f.id
-        WHERE f.user_id = ?""", [f"{year}-01-01", f"{year + 1}-01-01", user_id])[0]
+def flights_in_year(user_id, year):
+    """Count the traveller's flights departing within the selected calendar year."""
+    return db.query("""SELECT COUNT(*) AS total FROM flights
+        WHERE user_id = ? AND departure_date >= ? AND departure_date < ?""",
+                    [user_id, f"{year}-01-01", f"{year + 1}-01-01"])[0]["total"]
+
+
+def rating_statistics(user_id):
+    """Return the average and sample count, both excluding missing overall ratings."""
+    return db.query("""SELECT AVG(r.overall_rating) AS average_rating,
+        COUNT(r.overall_rating) AS rated_flights
+        FROM flights f JOIN flight_reviews r ON r.flight_id = f.id
+        WHERE f.user_id = ?""", [user_id])[0]
 
 
 # UNION counts an airport once per flight, even when departure and arrival are the same.
