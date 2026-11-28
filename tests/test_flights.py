@@ -305,7 +305,7 @@ class FlightsTest(unittest.TestCase):
                             field: "ZZZ", "action": action, "confirm_" + field: "ZZZ",
                             "review": "Unsaved draft"})
                         self.assertEqual(response.status_code, 400)
-                        self.assertIn(b"Choose an airport from our database", response.data)
+                        self.assertIn(b"Airport not found", response.data)
                         self.assertNotIn(b"Use ZZZ as entered", response.data)
                         self.assertEqual(Page(response).values[field], "ZZZ")
                         self.assertEqual(Page(response).values["review"], "Unsaved draft")
@@ -321,7 +321,7 @@ class FlightsTest(unittest.TestCase):
         self.assertEqual(self.client.get(path).status_code, 200)
         edit = self.client.get(path + "/edit")
         self.assertEqual(edit.status_code, 400)
-        self.assertIn(b"Choose an airport from our database", edit.data)
+        self.assertIn(b"Airport not found", edit.data)
         corrected = self.post(path + "/edit", self.values | {
             "departure_code": " hel ", "arrival_code": "ams", "action": "save"})
         self.assertEqual(corrected.status_code, 302)
